@@ -1,0 +1,159 @@
+#!/usr/bin/env bash
+########################################################################################################################
+# This file contains additional stuff that is related to image manipulation, though not technically part of the registry
+# REST API (like checksuming, gzipping, etc)
+# It is meant to be "." by consumers to ease manipulation of local files
+#
+# Expectations are that:
+# - the shasum binary is available
+# - the REGISTRY_SERVER variable is set
+########################################################################################################################
+
+# Defaults
+_=${REGISTRY_SERVER:=https://registry-1.docker.io}
+_=${REGISTRY_USERNAME:=anonymous}
+export REGISTRY_USERNAME
+
+# Defines
+CONST_EXT_TGZ="tgz"
+CONST_EXT_JSON="json"
+
+CONST_TYPE_MANIFEST="manifest"
+CONST_TYPE_BLOB="blob"
+
+CONST_MIME_MANIFEST_V1="application/vnd.docker.distribution.manifest.v1+json"
+CONST_MIME_MANIFEST_V2="application/vnd.docker.distribution.manifest.v2+json"
+CONST_MIME_MANIFEST_LIST="application/vnd.docker.distribution.manifest.list.v2+json"
+CONST_MIME_MANIFEST_CONFIG_V1="application/vnd.docker.container.image.v1+json"
+CONST_MIME_LAYER="application/vnd.docker.image.rootfs.diff.tar.gzip"
+CONST_MIME_FOREIGN_LAYER="application/vnd.docker.image.rootfs.foreign.diff.tar.gzip"
+CONST_MIME_PLUGIN="application/vnd.docker.plugin.v1+json"
+
+# Provisional for experimental vendor use
+CONST_MIME_APP_DEF="application/vnd.docker.x-app-definition.v1+json"
+CONST_MIME_APP_TPL="application/vnd.docker.x-app-template.v1+json"
+
+#################################
+# re::shasum::compute FILE EXPECTED
+#################################
+#
+# A shasum helper that computes a docker digest from a local file
+# Sets a "computed_digest" variable with the compute digest
+# Also sets a verified variable to either the null string or "verified" if the computed digest matches the second (optional) argument
+re::shasum::compute(){
+  verified=
+  local file="$1"
+  local expected="$2"
+  computed_digest=$(shasum -a 256 "$file")
+  computed_digest="sha256:${computed_digest%% *}"
+  [ "$computed_digest" == "$expected" ] && verified=verified
+}
+
+#################################
+# re::gzip::unpack DESTINATION FILE
+#################################
+#
+# Unpack a compressed file to a destination folder
+re::gzip::unpack(){
+  destination="$1"
+  tarball="$2"
+  mkdir -p "$destination"
+  cd "$destination"
+  tar -xzf "$tarball"
+  cd - > /dev/null
+}
+
+# TODO
+# Pack a folder
+#gzip::pack(){
+#  echo "pack"
+#}
+
+#################################
+# re::resolve TYPE NAME REF
+#################################
+#
+# Expects REGISTRY_SERVER to be set
+#
+# Resolve a type/name/reference to a digest, size, and type
+re::resolve(){
+  # Get the digest and type
+  local t=$1
+  local name=$2
+  local ref=$3
+  digest=$(regander -s --registry="$REGISTRY_SERVER" $t HEAD $name $ref | jq -r .digest)
+  # XXX one too many request
+  type=$(regander   -s --registry="$REGISTRY_SERVER" $t HEAD $name $digest | jq -r .type)
+  length=$(regander -s --registry="$REGISTRY_SERVER" $t HEAD $name $digest | jq -r .length)
+}
+
+#################################
+# re::download TYPE NAME DIGEST DESTINATION EXTENSION
+#################################
+#
+# Expects REGISTRY_SERVER to be set
+#
+# Download and verify an object
+re::download(){
+  local type=$1
+  local name=$2
+  local dgs=$3
+  local destination=$4
+  local extension=$5
+  mkdir -p "$destination"
+  regander -s --registry="$REGISTRY_SERVER" $type GET $name $dgs > "$destination/$digest.$extension"
+  re::shasum::compute "$destination/$digest.$extension" $dgs
+  if [ -z "$verified" ]; then
+    >&2 echo "Verification failed for object '$destination/$digest.$extension'"
+    >&2 echo "Was expecting: '$dgs'"
+    >&2 echo "Local check: '$digest'"
+    exit 1
+  fi
+  if [ "$extension" == "$CONST_EXT_TGZ" ]; then
+    re::gzip::unpack "$destination/$digest" "../$digest.$extension"
+  fi
+}
+
+
+re::source::list(){
+  local manifest_list="$2/$1.$3"
+  digests=($(cat        "$manifest_list" | jq -r .manifests[].digest))
+  architectures=($(cat  "$manifest_list" | jq -r .manifests[].platform.architecture))
+  oses=($(cat           "$manifest_list" | jq -r .manifests[].platform.os))
+  variants=($(cat       "$manifest_list" | jq -r .manifests[].platform.variant))
+}
+
+re::fetch::list(){
+  local name="$1"
+  local listfile="$2"
+  local destination="$3"
+
+  re::info::list "$listfile"
+
+  # Iterate over them and download them all
+  for i in "${!digests[@]}"; do
+    platform="platform"
+    if [ "${architectures[i]}" != "null" ]; then
+      platform=${platform}-${architectures[i]}
+    fi
+    if [ "${oses[i]}" != "null" ]; then
+      platform=${platform}-${oses[i]}
+    fi
+    if [ "${variants[i]}" != "null" ]; then
+      platform=${platform}-${variants[i]}
+    fi
+    mkdir -p "$destination/$platform"
+
+    re::download $CONST_TYPE_MANIFEST $name ${digests[i]} "$destination/$platform" $CONST_EXT_JSON
+  done
+}
+
+re::info::v2(){
+  #
+  echo
+}
+
+re::info::v1(){
+  #
+  echo
+}
