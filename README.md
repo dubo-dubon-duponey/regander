@@ -1,88 +1,82 @@
 # Regander
 
-> A piece of shcript to interact with docker registries
+> A piece of shcript to interact with them Dockeristries
 
-Regander is a full-fledged REST client for the [Docker Registry API](https://docs.docker.com/registry/spec/api/) aiming at completeness.
+Regander is a full-fledged client for the [Docker Registry API](https://docs.docker.com/registry/spec/api/) aiming at completeness and correctness.
 
 In a shell: it takes care of the dreaded token authentication and all the HTTP monkeying for you, allowing the consumer 
-to easily implement higher-level methods to manipulate images, by using simple method calls that closely mimic the API expressiveness.
+to easily implement higher-level scripts to manipulate images, by using simple method calls that closely mimic the API.
 
-Regander also provides verbose debugging and logging options that are useful to troubleshoot misbehaving registries and images,
-including `curl` stances that can be copy-pasted to manually replay HTTP calls.
+Regander also provides extensive debugging and logging options that are useful to troubleshoot misbehaving registries and images,
+including `curl` stances that can be copy-pasted to manually replay HTTP calls, and uses exit codes to convey meaningful errors.
 
-A set of additional scripts (named `regander.$$$$$.sh`) are provided for fun (and profit), demonstrating
-implementation of some of these "higher-level" image manipulation technics (completely downloading a multi-architecture image, 
-cloning an image, pushing an image, etc).
-
-## Requirements
-
-`bash` and `jq`.
-
-On mac: `brew install jq`
-
-On linux: left as an exercise to the reader.
-
-On windows: duh.
+A set of additional scripts in the `examples` folder are provided for fun (and profit), demonstrating
+these "high-level" image manipulation methods (eg: downloading and uploading a multi-architecture image, 
+copying an image over between registries, etc).
 
 ## Installation
 
-Copy the `regander` shell script, make it executable, and put it in your PATH.
+### The easy-way
 
-Alternatively, clone this repo to also get the additional scripts (and put them all in your PATH).
+> on mac
 
-## How-to use
+`brew install dubo-dubon-duponey/brews/regander`
+
+### The other way
+
+> linux and mac
+
+You need `bash` (the real bash, reasonably recent - you have that, right?)
+
+And `jq` (on mac `brew install jq`).
+
+Then `git clone https://github.com/dubo-dubon-duponey/regander --recursive`.
+
+Then `make` inside the clone.
+
+Now you have `./bin/regander`
+
+### Windows
+
+> meh
+
+`meh`
+
+## Usage TL;DR
 
 ```
-regander [options] endpoint METHOD [object] [reference] [origin-object]
+[ENV=FOO] regander [flags] endpoint METHOD [object] [reference] [origin-object]
 ```
 
 For example:
 
 ```
-regander -s --downgrade=true manifest HEAD library/nginx alpine
+regander -s --registry=https://myregistry manifest HEAD library/nginx alpine
 ```
 
-Try `regander --help` for everything else...
-
-## TL;DR / cheat sheet
-
-Reading:
+Moar?
 
 ```
-export REGISTRY_USERNAME=anonymous
-
-regander -s --registry=https://registry-1.docker.io version GET
-
-regander -s --registry=https://registry-1.docker.io tags GET library/nginx
-
-regander -s --registry=https://registry-1.docker.io manifest HEAD library/nginx alpine
-
-regander -s --registry=https://registry-1.docker.io manifest GET library/nginx alpine
-
-regander -s --registry=https://registry-1.docker.io blob GET library/nginx 
+regander --help
 ```
+
+The user will be prompted for credentials in interactive mode.
+Otherwise regander will fallback to anonymous queries, or use whatever credentials are provided through the environment.
+
+See the [reference](REFERENCE.md) for extensive usage details.
 
 ## Examples
 
 Look into the examples folder for:
 
-1. `example.clone.sh`: take an image and clone it into another image using blob mounts on the same registry
+1. `examples/clone-image.sh`: take an image and clone it into another image on the same registry using blob mounts commands
 
-2. ``: analyze an image by getting its total size and number of layers
-
-3. `example.download.sh`: downloading an image locally, verifying it, and unpacking its content
+2. `examples/download-image.sh`: download an entire image locally and unpack its content
 
 ## Caveats and TODO
 
-Not supported:
- * Registries with basic authentication. Only token auth is implemented.
- * Resumable upload
- * Byte-range blob fetch
- * Manifest list
- * OSX keychain integration
+See the [todo](TODO.md).
 
-## Spirit
+## Develop
 
-Regander itself is copy-pastable, and should stay that way - it's a standalone binary, with no crazy dependency, or complex installation.
-
-Yeah, that's 800+ lines.
+See the [develop](DEVELOP.md) doc.
