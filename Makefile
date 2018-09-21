@@ -51,12 +51,16 @@ test-unit: bootstrap
 	$(call title, $@)
 	$(DC_PREFIX)/bin/dc-tooling-test --type=unit --tests=$(DC_MAKEFILE_DIR)/tests/unit source/core/*
 
+test-bed:
+	if [ "$(shell docker ps -aq --filter "name=registry")" ]; then docker rm -f registry; fi
+	docker run -d -p 5000:5000 --restart=always --name registry registry:2
+
 test-integration: bootstrap
 	$(call title, $@)
 	$(DC_PREFIX)/bin/dc-tooling-test --type=integration --tests=$(DC_MAKEFILE_DIR)/tests/integration
 
 lint: lint-signed lint-code
-test: test-unit test-integration
+test: test-unit test-bed test-integration
 build: bootstrap $(DC_PREFIX)/bin/regander
 
 # Simple clean: rm bin & lib
