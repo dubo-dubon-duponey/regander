@@ -219,6 +219,10 @@ _wrapper::request::postprocess(){
   dc::http::dump::headers
   dc::http::dump::body
 
+  if ! jq '.' "$DC_HTTP_BODY"; then
+    cat "$DC_HTTP_BODY"
+  fi
+
   case $DC_HTTP_STATUS in
   "400")
     dc::logger::error "Something is badly borked. Check out above."

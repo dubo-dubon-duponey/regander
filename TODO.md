@@ -20,3 +20,4 @@
  * DTR (and also Hub, differently) does pre-validate image / tag names, returning different errors at the nginx level
  * registry will 500 on an empty blob
  * upload endpoint with POST will always return a redirect, regardless of whether it's on a redirected upload endpoint already
+ * blob MOUNT final location contains FQDN, blob HEAD is relative

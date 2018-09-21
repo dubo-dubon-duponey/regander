@@ -129,7 +129,7 @@ regander::manifest::PUT() {
   dc::logger::info " * Location: $DC_HTTP_HEADER_LOCATION"
   dc::logger::info " * Digest: $DC_HTTP_HEADER_DOCKER_CONTENT_DIGEST"
 
-  dc::output::json "{\"location\": \"$DC_HTTP_HEADER_LOCATION\", \"digest:\": \"$DC_HTTP_HEADER_DOCKER_CONTENT_DIGEST\"}"
+  dc::output::json "{\"location\": \"$DC_HTTP_HEADER_LOCATION\", \"digest\": \"$DC_HTTP_HEADER_DOCKER_CONTENT_DIGEST\"}"
 }
 
 regander::manifest::DELETE() {
@@ -231,7 +231,7 @@ regander::blob::MOUNT() {
   dc::logger::info " * Location: $DC_HTTP_HEADER_LOCATION"
   dc::logger::info " * Digest: $DC_HTTP_HEADER_DOCKER_CONTENT_DIGEST"
   dc::logger::info " * Length: $DC_HTTP_HEADER_CONTENT_LENGTH"
-  dc::output::json "{\"location\": \"$DC_HTTP_HEADER_LOCATION\", \"length\": \"$DC_HTTP_HEADER_CONTENT_LENGTH\", \"digest:\": \"$DC_HTTP_HEADER_DOCKER_CONTENT_DIGEST\"}"
+  dc::output::json "{\"location\": \"$DC_HTTP_HEADER_LOCATION\", \"length\": \"$DC_HTTP_HEADER_CONTENT_LENGTH\", \"digest\": \"$DC_HTTP_HEADER_DOCKER_CONTENT_DIGEST\"}"
 }
 
 regander::blob::DELETE() {
