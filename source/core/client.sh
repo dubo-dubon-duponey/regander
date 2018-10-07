@@ -67,6 +67,8 @@ _regander::authenticate() {
     # Fetch credentials, if we don't have some to replay already
     if [ ! "$REGANDER_USERNAME" ]; then
       dc::prompt::credentials "Please provide your username (or press enter for anonymous): " REGANDER_USERNAME "password: " REGANDER_PASSWORD
+      export REGANDER_USERNAME
+      export REGANDER_PASSWORD
     fi
 
     # If we have something, build the basic auth header
@@ -100,7 +102,7 @@ _regander::authenticate() {
 
     # TODO Actually validate the scope in full
     if [ ! "$scope" ] || [ "$DC_JWT_ACCESS" != "[]" ]; then
-      dc::logger::info "[regander] JWT scope: $scope"
+      dc::logger::debug "[regander] JWT scope: $scope"
       break
     fi
 
@@ -158,7 +160,7 @@ _regander::http(){
     read -r "${key?}" < <(printf "%s" "$value")
   done
 
-  dc::logger::info "[regander] JWT service: $service" "[regander] JWT realm: $realm" "[regander] JWT scope: $scope" "[regander] JWT error: $error"
+  dc::logger::debug "[regander] JWT service: $service" "[regander] JWT realm: $realm" "[regander] JWT scope: $scope" "[regander] JWT error: $error"
 
   # Did we get anything but a 401, and no scope error? We are good to go
   if [ "${DC_HTTP_STATUS}" != "401" ] && [ ! "$error" ]; then

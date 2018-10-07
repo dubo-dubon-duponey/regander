@@ -48,10 +48,10 @@ regander::manifest::HEAD() {
 
   _regander::client "$name/manifests/$ref" HEAD ""
 
-  dc::logger::info "HEAD manifest $name:$ref:"
-  dc::logger::info " * Has a length of: $DC_HTTP_HEADER_CONTENT_LENGTH bytes"
-  dc::logger::info " * Is of content-type: $DC_HTTP_HEADER_CONTENT_TYPE"
-  dc::logger::info " * Has digest: $DC_HTTP_HEADER_DOCKER_CONTENT_DIGEST"
+  dc::logger::info "-------------" "HEAD manifest successful"
+  dc::logger::debug " * Has a length of: $DC_HTTP_HEADER_CONTENT_LENGTH bytes"
+  dc::logger::debug " * Is of content-type: $DC_HTTP_HEADER_CONTENT_TYPE"
+  dc::logger::debug " * Has digest: $DC_HTTP_HEADER_DOCKER_CONTENT_DIGEST"
 
   dc::output::json "{\"type\": \"$DC_HTTP_HEADER_CONTENT_TYPE\", \"length\": \"$DC_HTTP_HEADER_CONTENT_LENGTH\", \"digest\": \"$DC_HTTP_HEADER_DOCKER_CONTENT_DIGEST\"}"
 }
@@ -64,10 +64,10 @@ regander::manifest::GET() {
 
   _regander::client "$name/manifests/$ref" GET ""
 
-  dc::logger::info "GET manifest $name:$ref:"
-  dc::logger::info " * Has a length of: $DC_HTTP_HEADER_CONTENT_LENGTH bytes"
-  dc::logger::info " * Is of content-type: $DC_HTTP_HEADER_CONTENT_TYPE"
-  dc::logger::info " * Has digest: $DC_HTTP_HEADER_DOCKER_CONTENT_DIGEST"
+  dc::logger::info "-------------" "GET manifest successful"
+  dc::logger::debug " * Has a length of: $DC_HTTP_HEADER_CONTENT_LENGTH bytes"
+  dc::logger::debug " * Is of content-type: $DC_HTTP_HEADER_CONTENT_TYPE"
+  dc::logger::debug " * Has digest: $DC_HTTP_HEADER_DOCKER_CONTENT_DIGEST"
 
   dc::logger::debug "$(jq '.' "$DC_HTTP_BODY" 2>/dev/null || cat "$DC_HTTP_BODY")"
 
@@ -88,18 +88,18 @@ regander::manifest::PUT() {
     dc::logger::warning "Type your manifest below, then press enter, then CTRL+D to send it"
   fi
 
-  # XXX Should payload be left untouched?
   # TODO schema validation?
   local payload
+  local raw
 
-  if ! payload="$(jq -c -j . 2>/dev/null < /dev/stdin)" || [ ! "$payload" ]; then
-    dc::logger::error "The provided payload is not valid json... not sending. check your input!"
+  raw="$(cat /dev/stdin)"
+  if ! payload="$(printf "%s" "$raw" | jq -c -j . 2>/dev/null)" || [ ! "$payload" ]; then
+    dc::logger::error "The provided payload is not valid json... not sending. check your input: $raw"
     exit "$ERROR_REGISTRY_MALFORMED"
   fi
-  dc::logger::debug "Gonna post this: $payload"
 
   local mime
-  mime="$(echo "$payload" | jq -rc .mediaType 2>/dev/null)"
+  mime="$(printf "%s" "$payload" | jq -rc .mediaType 2>/dev/null)"
   # No embedded mime-type means that may be a v1 thingie
   if [ ! "$mime" ]; then
     mime=$MIME_MANIFEST_V1
@@ -112,11 +112,11 @@ regander::manifest::PUT() {
   fi
 
   local shasum
-  shasum=$(regander::shasum::compute /dev/stdin < <(printf "%s" "$payload"))
+  shasum=$(regander::shasum::compute /dev/stdin < <(printf "%s" "$raw"))
 
-  dc::logger::debug "Shasum for content is $shasum"
+  dc::logger::info "Shasum for content is $shasum. Going to push to $name/manifests/$ref."
 
-  _regander::client "$name/manifests/$ref" PUT "$payload" "Content-type: $mime"
+  _regander::client "$name/manifests/$ref" PUT "$raw" "Content-type: $mime"
 
   if [ "$DC_HTTP_STATUS" != "201" ]; then
     dc::logger::error "Houston? Allo?"
@@ -125,9 +125,9 @@ regander::manifest::PUT() {
     exit "$ERROR_REGISTRY_UNKNOWN"
   fi
 
-  dc::logger::info "Manifest succesfully uploaded"
-  dc::logger::info " * Location: $DC_HTTP_HEADER_LOCATION"
-  dc::logger::info " * Digest: $DC_HTTP_HEADER_DOCKER_CONTENT_DIGEST"
+  dc::logger::info "-------------" "PUT manifest successful"
+  dc::logger::debug " * Location: $DC_HTTP_HEADER_LOCATION"
+  dc::logger::debug " * Digest: $DC_HTTP_HEADER_DOCKER_CONTENT_DIGEST"
 
   dc::output::json "{\"location\": \"$DC_HTTP_HEADER_LOCATION\", \"digest\": \"$DC_HTTP_HEADER_DOCKER_CONTENT_DIGEST\"}"
 }
@@ -156,18 +156,19 @@ regander::blob::HEAD() {
 
   _regander::client "$name/blobs/$ref" HEAD ""
 
-  dc::logger::info "HEAD blob $name:$ref:"
-  dc::logger::info " * Has a length of: $DC_HTTP_HEADER_CONTENT_LENGTH bytes"
-  dc::logger::info " * Is of content-type: $DC_HTTP_HEADER_CONTENT_TYPE"
+  dc::logger::info "-------------" "HEAD blob successful"
+  dc::logger::debug " * Has a length of: $DC_HTTP_HEADER_CONTENT_LENGTH bytes"
+  dc::logger::debug " * Is of content-type: $DC_HTTP_HEADER_CONTENT_TYPE"
+
   local finally="$name/blobs/$ref"
   if [ -n "$DC_HTTP_REDIRECTED" ]; then
     finally=$DC_HTTP_REDIRECTED
   fi
   if [ "$_DC_HTTP_REDACT" ]; then
-    dc::logger::info " * Final location: REDACTED" # $finally
+    dc::logger::debug " * Final location: REDACTED" # $finally
   else
     # Careful, this is possibly leaking a valid signed token to access private content
-    dc::logger::info " * Final location: $finally"
+    dc::logger::debug " * Final location: $finally"
   fi
   dc::output::json "{\"type\": \"$DC_HTTP_HEADER_CONTENT_TYPE\", \"length\": \"$DC_HTTP_HEADER_CONTENT_LENGTH\", \"location\": \"$finally\"}"
 }
@@ -180,16 +181,16 @@ regander::blob::GET() {
 
   _regander::client "$name/blobs/$ref" HEAD ""
 
-  dc::logger::info "HEAD blob $name:$ref:"
-  dc::logger::info " * Has a length of: $DC_HTTP_HEADER_CONTENT_LENGTH bytes"
-  dc::logger::info " * Is of content-type: $DC_HTTP_HEADER_CONTENT_TYPE"
+  dc::logger::info "-------------" "GET blob successful"
+  dc::logger::debug " * Has a length of: $DC_HTTP_HEADER_CONTENT_LENGTH bytes"
+  dc::logger::debug " * Is of content-type: $DC_HTTP_HEADER_CONTENT_TYPE"
 
   if [ "$DC_HTTP_REDIRECTED" ]; then
     if [ "$_DC_HTTP_REDACT" ]; then
-      dc::logger::info " * Final location: REDACTED" # $finally
+      dc::logger::debug " * Final location: REDACTED" # $finally
     else
       # Careful, this is possibly leaking a valid signed token to access private content
-      dc::logger::info " * Final location: $finally"
+      dc::logger::debug " * Final location: $finally"
     fi
     _regander::anonymous "$DC_HTTP_REDIRECTED" "GET" ""
   else
@@ -227,10 +228,10 @@ regander::blob::MOUNT() {
     dc::http::dump::body
     exit "$ERROR_REGISTRY_UNKNOWN"
   fi
-  dc::logger::info "Mount blob $ref from $from into $name"
-  dc::logger::info " * Location: $DC_HTTP_HEADER_LOCATION"
-  dc::logger::info " * Digest: $DC_HTTP_HEADER_DOCKER_CONTENT_DIGEST"
-  dc::logger::info " * Length: $DC_HTTP_HEADER_CONTENT_LENGTH"
+  dc::logger::info "-------------" "MOUNT blob successful"
+  dc::logger::debug " * Location: $DC_HTTP_HEADER_LOCATION"
+  dc::logger::debug " * Digest: $DC_HTTP_HEADER_DOCKER_CONTENT_DIGEST"
+  dc::logger::debug " * Length: $DC_HTTP_HEADER_CONTENT_LENGTH"
   dc::output::json "{\"location\": \"$DC_HTTP_HEADER_LOCATION\", \"length\": \"$DC_HTTP_HEADER_CONTENT_LENGTH\", \"digest\": \"$DC_HTTP_HEADER_DOCKER_CONTENT_DIGEST\"}"
 }
 
@@ -252,7 +253,7 @@ regander::blob::DELETE() {
 
 regander::blob::PUT() {
   local name=$1
-  local ref=$2
+  local type=$2
   registry::grammar::name "$name"
   #registry::grammar::digest "$ref"
 
@@ -286,5 +287,5 @@ regander::blob::PUT() {
     dc::http::dump::body
     exit "$ERROR_REGISTRY_UNKNOWN"
   fi
-  echo "\"$DC_HTTP_HEADER_DOCKER_CONTENT_DIGEST\""
+  dc::output::json "{\"digest\": \"$DC_HTTP_HEADER_DOCKER_CONTENT_DIGEST\", \"size\": $length, \"mediaType\": \"$type\"}"
 }

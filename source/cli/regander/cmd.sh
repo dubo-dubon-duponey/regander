@@ -3,7 +3,7 @@
 readonly CLI_VERSION="0.0.1"
 readonly CLI_LICENSE="MIT License"
 readonly CLI_DESC="docker registry shell script client"
-readonly CLI_USAGE="[-s] [--insecure] [--downgrade] [--disable-verification] [--registry=https://registry-1.docker.io] endpoint METHOD"
+readonly CLI_USAGE="[-s] [--insecure] [--downgrade] [--disable-verification] [--registry=https://registry-1.docker.io] endpoint METHOD [name] [reference] [source]"
 
 # Boot
 dc::commander::init

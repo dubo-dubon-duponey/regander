@@ -22,6 +22,9 @@ define title
 	@echo "$(GREEN)------------------------------------------------------------------------------------------------------------------------$(ORANGE)"
 endef
 
+# Tweak path for tests
+PATH := $(DC_PREFIX)/bin:$(PATH)
+
 all: build lint test
 
 # Make happy
@@ -34,7 +37,7 @@ bootstrap:
 	$(call title, $@)
 	make -s -f sh-art/Makefile build-tooling build-library
 
-$(DC_PREFIX)/bin/regander: $(DC_PREFIX)/lib/dc-sh-art $(DC_PREFIX)/lib/dc-sh-art-extensions source/core/*.sh source/cli/*.sh
+$(DC_PREFIX)/bin/%: $(DC_PREFIX)/lib/dc-sh-art $(DC_PREFIX)/lib/dc-sh-art-extensions source/core/*.sh source/cli/%/*.sh
 	$(call title, $@)
 	$(DC_PREFIX)/bin/dc-tooling-build --destination="$(shell dirname $@)" --name="$(shell basename $@)" --license="MIT license" --author="dubo-dubon-duponey" --description="docker registry shell script client" $^
 
@@ -42,6 +45,8 @@ lint-code: bootstrap
 	$(call title, $@)
 	$(DC_PREFIX)/bin/dc-tooling-lint $(DC_MAKEFILE_DIR)/source
 	$(DC_PREFIX)/bin/dc-tooling-lint $(DC_MAKEFILE_DIR)/examples
+	$(DC_PREFIX)/bin/dc-tooling-lint $(DC_PREFIX)/lib/*
+	$(DC_PREFIX)/bin/dc-tooling-lint $(DC_PREFIX)/bin/*
 
 lint-signed: bootstrap
 	$(call title, $@)
@@ -61,7 +66,7 @@ test-integration: bootstrap
 
 lint: lint-signed lint-code
 test: test-unit test-bed test-integration
-build: bootstrap $(DC_PREFIX)/bin/regander
+build: bootstrap $(DC_PREFIX)/bin/regander $(DC_PREFIX)/bin/reghigh
 
 # Simple clean: rm bin & lib
 clean:
