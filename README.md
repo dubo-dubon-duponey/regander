@@ -1,4 +1,6 @@
 # Regander
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fdubo-dubon-duponey%2Fregander.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fdubo-dubon-duponey%2Fregander?ref=badge_shield)
+
 
 > A piece of shcript to interact with docker registries
 
@@ -86,3 +88,7 @@ Not supported:
 Regander itself is copy-pastable, and should stay that way - it's a standalone binary, with no crazy dependency, or complex installation.
 
 Yeah, that's 800+ lines.
+
+
+## License
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fdubo-dubon-duponey%2Fregander.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fdubo-dubon-duponey%2Fregander?ref=badge_large)
