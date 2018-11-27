@@ -1,14 +1,15 @@
 # TODO
 
- * support straight registry basic authentication
+ * support basic auth
  * support DTR token auth?
  * OSX keychain integration -> core
  * Byte-range blob fetch
  * resumable upload
  * consume and present error payloads as returned by the registry
  * bash auto-completion
+ * notary?
 
-# Everything that is wrong now
+# Everything that is wrong
 
  * nginx in Hub and DTR are "validating" names, effectively overriding registry responses in some cases
  * garant doesn't support multi-scopes in a single scope GET parameter: you have to repeat the scope GET param multiple param

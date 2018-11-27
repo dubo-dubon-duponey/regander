@@ -8,6 +8,7 @@
 # Sets a "computed_digest" variable with the compute digest
 # Also sets a verified variable to either the null string or "verified" if the computed digest matches the second (optional) argument
 regander::shasum::verify(){
+  dc::require shasum
   local file="$1"
   local expected="$2"
   digest=$(shasum -a 256 "$file" 2>/dev/null)
@@ -20,6 +21,7 @@ regander::shasum::verify(){
 }
 
 regander::shasum::compute(){
+  dc::require shasum
   local file="$1"
   digest=$(shasum -a 256 "$file" 2>/dev/null)
   printf "%s" "sha256:${digest%% *}"

@@ -21,9 +21,6 @@ The following flags can be used in combination with an actual `regander` method 
 -s, --silent
     Will not log anything to stderr
 
---insecure
-    Silently ignore TLS errors (see curl --insecure for more)
-
 --registry=scheme://host[:port]
     Points regander to the registry at scheme://host[:port]
     Supported schemes are http and https
@@ -32,6 +29,14 @@ The following flags can be used in combination with an actual `regander` method 
 
 --downgrade
     Force regander to behave as a schema v1 client (this will hurt your feelings!)
+
+# DANGER DANGER
+   
+--insecure
+    Silently ignore TLS errors (see curl --insecure for more)
+
+--disable-verification
+    Do not verify the shasum of the retrieved content (CAREFUL WITH THAT, TIGER)
 ```
 
 The following flags are standalone commands:
@@ -78,7 +83,7 @@ These exit codes and their meaning can be seen in `sh-art` and in the source tre
 203   operation is not supported
 204   generic error
 205   filesystem error
-206   you miss jq, shasum or bash
+206   you miss one of the system requirements (jq, shasum or bash)
 
 ## Registry errors
 12    malformed request
@@ -113,18 +118,18 @@ This behavior can be altered in two ways:
  * by specifying the `REGANDER_LOG_LEVEL` environment variable to another level
  * by using the `-s` flag which will entirely mute all logging, including errors, and will override the environment variable
 
-By default, credentials and other authentication tokens are redacted. If you want them to appear 
+By default, credentials and other authentication tokens are redacted. If you want them to appear in logs
 (for example, in `curl` statements), set `REGANDER_LOG_AUTH=true`.
 
-Finally note that logging in `debug` WILL likely leak sensitive information regardless.
+Finally note that logging in `debug` WILL possibly leak sensitive information regardless.
 
 ```
 # Log levels
 
 REGANDER_LOG_LEVEL=debug
-    Maximum verbosity, including full curl output.
+    Maximum verbosity.
     You typically do NOT need this unless you are hacking on regander itself.
-    This WILL LEAK SENSITIVE information.
+    This MAY LEAK SENSITIVE information.
 
 REGANDER_LOG_LEVEL=info
     Default level.
@@ -132,7 +137,7 @@ REGANDER_LOG_LEVEL=info
     
 REGANDER_LOG_LEVEL=warning
     Will typically only print out important messages.
-    Recommended for well tested production use, but will possibly be terse to debug.
+    Recommended for well tested production use, but will possibly be hard to debug.
     
 REGANDER_LOG_LEVEL=error
     Only fatal error conditions.

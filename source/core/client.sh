@@ -49,12 +49,6 @@ _regander::authenticate() {
   shift
   shift
   shift
-  # Process the other arguments
-  local ar=()
-  local i
-  for i in "$@"; do
-    ar[${#ar[@]}]="$i"
-  done
 
   # Why on earth is garant not able to take a single scope param with spaces? this is foobared Docker!
   for i in $scope; do
@@ -74,12 +68,11 @@ _regander::authenticate() {
     # If we have something, build the basic auth header
     if [ "$REGANDER_USERNAME" ]; then
       # Generate the basic auth token with the known user
-      authHeader="Basic $(echo -n "${REGANDER_USERNAME}:${REGANDER_PASSWORD}" | base64)"
+      authHeader="Basic $(printf "%s" "${REGANDER_USERNAME}:${REGANDER_PASSWORD}" | base64)"
     fi
 
     # Query the service
-#    dc::http::request "$url" GET "" "Authorization: $authHeader" "${ar[@]}"
-    dc::http::request "$url" GET "" "Authorization: $authHeader" "$@"
+    dc::http::request "$url" GET "" "Authorization: $authHeader" "User-Agent: $REGANDER_UA" "$@"
 
     if [ "$DC_HTTP_STATUS" == "401" ]; then
       dc::logger::warning "Wrong username or password."
@@ -92,7 +85,7 @@ _regander::authenticate() {
       continue
     fi
 
-    # Anything but 200 is abnormal - in that case, break out and let downstream deal with it
+    # Anything but 200 or 401 is abnormal - in that case, break out and let downstream deal with it
     if [ "$DC_HTTP_STATUS" != "200" ]; then
       break
     fi
@@ -221,9 +214,8 @@ _wrapper::request::postprocess(){
   dc::http::dump::headers
   dc::http::dump::body
 
-  if ! jq '.' "$DC_HTTP_BODY"; then
-    cat "$DC_HTTP_BODY"
-  fi
+  # Try to produce the body if it's valid json (downstream clients may be interested in inspecting the registry error)
+  jq '.' "$DC_HTTP_BODY" 2>/dev/null
 
   case $DC_HTTP_STATUS in
   "400")
@@ -240,6 +232,10 @@ _wrapper::request::postprocess(){
   "404")
     dc::logger::error "The requested resource doesn't exist (at least for you!)."
     exit "$ERROR_REGISTRY_THIS_IS_A_MIRAGE"
+    ;;
+  "405")
+    dc::logger::error "This registry of yours does not support the requested operation. Maybe it's a cache? Or a very old dog?"
+    exit "$ERROR_REGISTRY_UNKNOWN"
     ;;
   "429")
     dc::logger::error "WOOOO! Slow down tiger! Registry says you are doing too many requests."

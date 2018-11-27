@@ -4,16 +4,27 @@
 # High-level registry API
 #####################################
 
+_expect(){
+  local expect="$1"
+  if [ "$DC_HTTP_STATUS" != "$expect" ]; then
+    dc::logger::error "Was expecting status code $expect, received $DC_HTTP_STATUS"
+    dc::http::dump::headers
+    dc::http::dump::body
+    exit "$ERROR_REGISTRY_UNKNOWN"
+  fi
+}
+
 regander::version::GET(){
-  # XXX technically, the version should be outputed (if present) even when authentication fails, while this method makes it mandatory to successfully authenticate
+  # XXX technically, the version is present even when authentication fails
+  # This method will still make authentication mandatory
   _regander::client "" GET ""
 
   if [ "$DC_HTTP_HEADER_DOCKER_DISTRIBUTION_API_VERSION" != "registry/2.0" ]; then
-    dc::logger::error "This server doesn't support the Registry API (expected version header was: \"$DC_HTTP_HEADER_DOCKER_DISTRIBUTION_API_VERSION)\""
+    dc::logger::error "This server doesn't support the Registry API (returned version header was: \"$DC_HTTP_HEADER_DOCKER_DISTRIBUTION_API_VERSION)\""
     exit "$ERROR_SERVER_NOT_WHAT_YOU_THINK"
   fi
 
-  dc::logger::info "-------------" "GET version successful: \"$DC_HTTP_HEADER_DOCKER_DISTRIBUTION_API_VERSION\""
+  dc::logger::info "GET version successful: \"$DC_HTTP_HEADER_DOCKER_DISTRIBUTION_API_VERSION\""
   dc::logger::debug "$(jq '.' "$DC_HTTP_BODY" 2>/dev/null || cat "$DC_HTTP_BODY")"
 
   dc::output::json "\"$DC_HTTP_HEADER_DOCKER_DISTRIBUTION_API_VERSION\""
@@ -22,7 +33,7 @@ regander::version::GET(){
 regander::catalog::GET() {
   _regander::client "_catalog" GET ""
 
-  dc::logger::info "-------------" "GET catalog successful"
+  dc::logger::info "GET catalog successful"
   dc::logger::debug "$(jq '.' "$DC_HTTP_BODY" 2>/dev/null || cat "$DC_HTTP_BODY")"
 
   jq '.' "$DC_HTTP_BODY"
@@ -30,11 +41,10 @@ regander::catalog::GET() {
 
 regander::tags::GET() {
   local name="$1"
-  registry::grammar::name "$name"
 
   _regander::client "$name/tags/list" GET ""
 
-  dc::logger::info "-------------" "GET tagslist successful"
+  dc::logger::info "GET tagslist successful"
   dc::logger::debug "$(jq '.' "$DC_HTTP_BODY" 2>/dev/null || cat "$DC_HTTP_BODY")"
 
   jq '.' "$DC_HTTP_BODY"
@@ -42,13 +52,11 @@ regander::tags::GET() {
 
 regander::manifest::HEAD() {
   local name="$1"
-  local ref="${2:-latest}" # Tag or digest
-  registry::grammar::name "$name"
-  registry::grammar::tagdigest "$ref"
+  local ref="${2:-latest}"
 
   _regander::client "$name/manifests/$ref" HEAD ""
 
-  dc::logger::info "-------------" "HEAD manifest successful"
+  dc::logger::info "HEAD manifest successful"
   dc::logger::debug " * Has a length of: $DC_HTTP_HEADER_CONTENT_LENGTH bytes"
   dc::logger::debug " * Is of content-type: $DC_HTTP_HEADER_CONTENT_TYPE"
   dc::logger::debug " * Has digest: $DC_HTTP_HEADER_DOCKER_CONTENT_DIGEST"
@@ -59,12 +67,10 @@ regander::manifest::HEAD() {
 regander::manifest::GET() {
   local name=$1
   local ref=${2:-latest} # Tag or digest
-  registry::grammar::name "$name"
-  registry::grammar::tagdigest "$ref"
 
   _regander::client "$name/manifests/$ref" GET ""
 
-  dc::logger::info "-------------" "GET manifest successful"
+  dc::logger::info "GET manifest successful"
   dc::logger::debug " * Has a length of: $DC_HTTP_HEADER_CONTENT_LENGTH bytes"
   dc::logger::debug " * Is of content-type: $DC_HTTP_HEADER_CONTENT_TYPE"
   dc::logger::debug " * Has digest: $DC_HTTP_HEADER_DOCKER_CONTENT_DIGEST"
@@ -81,11 +87,9 @@ regander::manifest::GET() {
 regander::manifest::PUT() {
   local name="$1"
   local ref="${2:-latest}"
-  registry::grammar::name "$name"
-  registry::grammar::tagdigest "$ref"
 
   if [ -t 0 ]; then
-    dc::logger::warning "Type your manifest below, then press enter, then CTRL+D to send it"
+    dc::logger::warning "Type or copy / paste your manifest below, then press enter, then CTRL+D to send it"
   fi
 
   # TODO schema validation?
@@ -106,7 +110,6 @@ regander::manifest::PUT() {
   fi
   # XXX shaky - a mime type that would partially match a substring would pass
   if [[ "${REGANDER_ACCEPT[*]}" != *"$mime"* ]]; then
-    echo "${REGANDER_ACCEPT[*]}"
     dc::logger::error "Mime type $mime is not recognized as a valid type."
     exit "$ERROR_ARGUMENT_INVALID"
   fi
@@ -118,14 +121,9 @@ regander::manifest::PUT() {
 
   _regander::client "$name/manifests/$ref" PUT "$raw" "Content-type: $mime"
 
-  if [ "$DC_HTTP_STATUS" != "201" ]; then
-    dc::logger::error "Houston? Allo?"
-    dc::http::dump::headers
-    dc::http::dump::body
-    exit "$ERROR_REGISTRY_UNKNOWN"
-  fi
+  _expect 201
 
-  dc::logger::info "-------------" "PUT manifest successful"
+  dc::logger::info "PUT manifest successful"
   dc::logger::debug " * Location: $DC_HTTP_HEADER_LOCATION"
   dc::logger::debug " * Digest: $DC_HTTP_HEADER_DOCKER_CONTENT_DIGEST"
 
@@ -135,33 +133,27 @@ regander::manifest::PUT() {
 regander::manifest::DELETE() {
   local name="$1"
   local ref="${2:-latest}"
-  registry::grammar::name "$name"
-  registry::grammar::tagdigest "$ref"
 
   _regander::client "$name/manifests/$ref" DELETE ""
 
-  if [ "$DC_HTTP_STATUS" != "202" ]; then
-    dc::logger::error "Something went sideways"
-    dc::http::dump::headers
-    dc::http::dump::body
-    exit "$ERROR_REGISTRY_UNKNOWN"
-  fi
+  _expect 202
 }
 
 regander::blob::HEAD() {
+  # Restrict to digest
+  dc::commander::declare::arg 4 "$GRAMMAR_DIGEST_SHA256"
+
   local name="$1"
   local ref="$2" # digest
-  registry::grammar::name "$name"
-  registry::grammar::digest "$ref"
 
   _regander::client "$name/blobs/$ref" HEAD ""
 
-  dc::logger::info "-------------" "HEAD blob successful"
+  dc::logger::info "HEAD blob successful"
   dc::logger::debug " * Has a length of: $DC_HTTP_HEADER_CONTENT_LENGTH bytes"
   dc::logger::debug " * Is of content-type: $DC_HTTP_HEADER_CONTENT_TYPE"
 
   local finally="$name/blobs/$ref"
-  if [ -n "$DC_HTTP_REDIRECTED" ]; then
+  if [ "$DC_HTTP_REDIRECTED" ]; then
     finally=$DC_HTTP_REDIRECTED
   fi
   if [ "$_DC_HTTP_REDACT" ]; then
@@ -174,14 +166,15 @@ regander::blob::HEAD() {
 }
 
 regander::blob::GET() {
+  # Restrict to digest
+  dc::commander::declare::arg 4 "$GRAMMAR_DIGEST_SHA256"
+
   local name="$1"
   local ref="$2" # digest
-  registry::grammar::name "$name"
-  registry::grammar::digest "$ref"
 
   _regander::client "$name/blobs/$ref" HEAD ""
 
-  dc::logger::info "-------------" "GET blob successful"
+  dc::logger::info "GET blob successful"
   dc::logger::debug " * Has a length of: $DC_HTTP_HEADER_CONTENT_LENGTH bytes"
   dc::logger::debug " * Is of content-type: $DC_HTTP_HEADER_CONTENT_TYPE"
 
@@ -190,7 +183,7 @@ regander::blob::GET() {
       dc::logger::debug " * Final location: REDACTED" # $finally
     else
       # Careful, this is possibly leaking a valid signed token to access private content
-      dc::logger::debug " * Final location: $finally"
+      dc::logger::debug " * Final location: $DC_HTTP_REDIRECTED"
     fi
     _regander::anonymous "$DC_HTTP_REDIRECTED" "GET" ""
   else
@@ -207,28 +200,18 @@ regander::blob::GET() {
 }
 
 regander::blob::MOUNT() {
+  # Restrict to digest
+  dc::commander::declare::arg 4 "$GRAMMAR_DIGEST_SHA256"
+
   local name="$1"
   local ref="$2"
   local from="$3"
 
-  registry::grammar::name "$name"
-  registry::grammar::digest "$ref"
-  registry::grammar::name "$from"
-
   _regander::client "$name/blobs/uploads/?mount=$ref&from=$from" POST ""
 
-  if [ "$DC_HTTP_STATUS" == "405" ]; then
-    dc::logger::error "This registry of yours does not support blob mounts. Maybe it's a cache? Or a very old dog?"
-    dc::http::dump::headers
-    dc::http::dump::body
-    exit "$ERROR_REGISTRY_COUGH"
-  elif [ "$DC_HTTP_STATUS" != "201" ]; then
-    dc::logger::error "Errr... errr... err..."
-    dc::http::dump::headers
-    dc::http::dump::body
-    exit "$ERROR_REGISTRY_UNKNOWN"
-  fi
-  dc::logger::info "-------------" "MOUNT blob successful"
+  _expect 201
+
+  dc::logger::info "MOUNT blob successful"
   dc::logger::debug " * Location: $DC_HTTP_HEADER_LOCATION"
   dc::logger::debug " * Digest: $DC_HTTP_HEADER_DOCKER_CONTENT_DIGEST"
   dc::logger::debug " * Length: $DC_HTTP_HEADER_CONTENT_LENGTH"
@@ -236,36 +219,25 @@ regander::blob::MOUNT() {
 }
 
 regander::blob::DELETE() {
+  # Restrict to digest
+  dc::commander::declare::arg 4 "$GRAMMAR_DIGEST_SHA256"
+
   local name="$1"
   local ref="$2" # digest DELETE /v2/<name>/blobs/<digest>
-  registry::grammar::name "$name"
-  registry::grammar::digest "$ref"
 
   _regander::client "$name/blobs/$ref" DELETE ""
 
-  if [ "$DC_HTTP_STATUS" != "202" ]; then
-    dc::logger::error "Something went sideways"
-    dc::http::dump::headers
-    dc::http::dump::body
-    exit "$ERROR_REGISTRY_UNKNOWN"
-  fi
+  _expect 202
 }
 
 regander::blob::PUT() {
   local name=$1
   local type=$2
-  registry::grammar::name "$name"
-  #registry::grammar::digest "$ref"
 
   # Get an upload id
   _regander::client "$name/blobs/uploads/" POST ""
 
-  if [ "$DC_HTTP_STATUS" != "202" ]; then
-    dc::logger::error "Something went sideways"
-    dc::http::dump::headers
-    dc::http::dump::body
-    exit "$ERROR_REGISTRY_UNKNOWN"
-  fi
+  _expect 202
 
   # XXX sucks - need to things clean-up also wrt curl instead of flipping out files all over the place
   tmpfile=$(mktemp -t regander::blob::PUT)
@@ -281,11 +253,6 @@ regander::blob::PUT() {
     "Content-Type: application/octet-stream" \
     "Content-Length: $length"
 
-  if [ "$DC_HTTP_STATUS" != 201 ]; then
-    dc::logger::error "Something went sideways"
-    dc::http::dump::headers
-    dc::http::dump::body
-    exit "$ERROR_REGISTRY_UNKNOWN"
-  fi
+  _expect 201
   dc::output::json "{\"digest\": \"$DC_HTTP_HEADER_DOCKER_CONTENT_DIGEST\", \"size\": $length, \"mediaType\": \"$type\"}"
 }

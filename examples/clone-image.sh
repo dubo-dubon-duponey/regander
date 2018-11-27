@@ -12,9 +12,7 @@ sourceTag="$2"
 destination="$3"
 destinationTag="$4"
 
-image="$(regander $SILENT --registry=$REGISTRY manifest GET "$source" "$sourceTag")"
-
-if [ "$?" != 0 ]; then
+if ! image="$(regander "$SILENT" --registry="$REGISTRY" manifest GET "$source" "$sourceTag")"; then
   echo "Failed to pull source image!"
   exit 1
 fi
@@ -23,24 +21,21 @@ layers="$(echo "$image" | jq -r .layers[].digest)"
 config="$(echo "$image" | jq -r .config.digest)"
 
 printf "%s\\n" "Mounting config into new image: $config"
-regander $SILENT --registry=$REGISTRY blob MOUNT "$destination" "$config" "$source"
-if [ "$?" != 0 ]; then
+if ! regander $SILENT --registry="$REGISTRY" blob MOUNT "$destination" "$config" "$source"; then
   echo "Failed to push config!"
   exit 1
 fi
 
 for layer in $layers; do
 	printf "%s\\n" "Mounting layer into new image: $layer"
-	regander $SILENT --registry=$REGISTRY blob MOUNT "$destination" "$layer" "$source"
-  if [ "$?" != 0 ]; then
+	if ! regander $SILENT --registry="$REGISTRY" blob MOUNT "$destination" "$layer" "$source"; then
     echo "Failed to push layer!"
     exit 1
   fi
 done
 
 printf "%s\\n" "Pushing manifest"
-echo -n "$image" | regander $SILENT --registry=$REGISTRY manifest PUT "$destination" "$destinationTag"
-if [ "$?" != 0 ]; then
+if ! printf "%s" "$image" | regander "$SILENT" --registry="$REGISTRY" manifest PUT "$destination" "$destinationTag"; then
   echo "Failed to push image!"
   exit 1
 fi
