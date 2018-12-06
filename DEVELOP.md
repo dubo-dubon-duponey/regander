@@ -12,11 +12,21 @@ make build
 make lint
 
 # Unit tests
-make unit
+make test-unit
 
 # Integration tests
-make integration
+make test-integration
 ```
+
+## Test in containers
+
+Use [dckr](https://github.com/dubo-dubon-duponey/dckr).
+
+On mac, `brew install dubo-dubon-duponey/brews/dckr`
+
+Then just run any of the make commands with `dckr`.
+
+Specifically: `DOCKERFILE=sh-art/Dockerfile dckr make test-unit`
 
 ## Spirit
 
