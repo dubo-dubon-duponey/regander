@@ -58,7 +58,7 @@ helperVersion(){
 
 helperCatalog(){
   # Empty catalog
-  result=$(regander --registry=$REGISTRY catalog GET)
+  result=$(regander -s --registry=$REGISTRY catalog)
   exit=$?
   result="$(echo "$result" | jq -rcj .)"
 
@@ -72,7 +72,7 @@ helperCatalog(){
 }
 
 helperBlobPush(){
-  result=$(regander -s --registry=$REGISTRY blob PUT $imagename < <(printf "%s" "$blob"))
+  result=$(regander -s --registry=$REGISTRY blob PUT $imagename "application/vnd.oci.image.layer.v1.tar+gzip" < <(printf "%s" "$blob"))
   exit=$?
   result="$(echo "$result" | jq -rcj .digest)"
 
@@ -110,7 +110,7 @@ helperBlobGet(){
 
 helperBlobMount(){
   # Mounting a blob
-  result=$(regander -s --registry=$REGISTRY blob MOUNT $otherimagename "$shasum" $imagename)
+  result=$(regander -s --registry=$REGISTRY --from=$imagename blob MOUNT $otherimagename "$shasum")
   exit=$?
   result="$(echo "$result" | jq -rcj .)"
 
