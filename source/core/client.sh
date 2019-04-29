@@ -14,17 +14,22 @@ _regander::straightwithauth(){
   shift
   shift
   shift
-  local auth=
-  # For first try, always use any existing token
+
+  local ar=("$url" "$method")
+  if [ "$payload" ]; then
+    ar+=("-")
+  else
+    ar+=("")
+  fi
   if [ "$DC_JWT_TOKEN" ]; then
-    auth="Authorization: Bearer $DC_JWT_TOKEN"
+    ar+=("Authorization: Bearer $DC_JWT_TOKEN")
   fi
 
   # Do the request
   if [ "$payload" ]; then
-    _wrapper::request "$url" "$method" "-" "$auth" "$@" < "$payload"
+    _wrapper::request "${ar[@]}" "$@" < "$payload"
   else
-    _wrapper::request "$url" "$method" "" "$auth" "$@"
+    _wrapper::request "${ar[@]}" "$@"
   fi
 }
 
@@ -91,7 +96,7 @@ _regander::authenticate() {
     fi
 
     # A 200 means authentication was successful, let's read the token and understand what just went down
-    dc::jwt::read "$(jq '.token' < "$DC_HTTP_BODY" | xargs echo)"
+    dc-ext::jwt::read "$(jq '.token' < "$DC_HTTP_BODY" | xargs echo)"
 
     # TODO Actually validate the scope in full
     if [ ! "$scope" ] || [ "$DC_JWT_ACCESS" != "[]" ]; then
@@ -122,17 +127,21 @@ _regander::http(){
   shift
   shift
 
-  local auth=
-  # For first try, always use any existing token
+  local ar=("$endpoint" "$method")
+  if [ "$payload" ]; then
+    ar+=("-")
+  else
+    ar+=("")
+  fi
   if [ "$DC_JWT_TOKEN" ]; then
-    auth="Authorization: Bearer $DC_JWT_TOKEN"
+    ar+=("Authorization: Bearer $DC_JWT_TOKEN")
   fi
 
   # Do the request
   if [ "$payload" ]; then
-    _wrapper::request "$endpoint" "$method" "-" "$auth" "$@" < <(printf "%s" "$payload")
+    _wrapper::request "${ar[@]}" "$@" < <(printf "%s" "$payload")
   else
-    _wrapper::request "$endpoint" "$method" "" "$auth" "$@"
+    _wrapper::request "${ar[@]}" "$@"
   fi
 
   # If it's a failed request, check what we have, starting with reading the header
@@ -173,7 +182,7 @@ _regander::http(){
     return
   fi
 
-  # Authenticate returned successfully, means we have a token to try again. Note though that the scope may still be unsufficient at this point.
+  # Authenticate returned successfully, means we have a token to try again. Note though that the scope may still be insufficient at this point.
   auth="Authorization: Bearer $DC_JWT_TOKEN"
   # Replay the transaction
   if [ "$payload" ]; then
@@ -183,23 +192,38 @@ _regander::http(){
   fi
 }
 
+# Lets one express expectations on non-error status codes (201, etc)
+_regander::expect(){
+  local expect="$1"
+  if [ "$DC_HTTP_STATUS" != "$expect" ]; then
+    dc::logger::error "Was expecting status code $expect, received $DC_HTTP_STATUS"
+    dc::http::dump::headers
+    dc::http::dump::body
+    exit "$ERROR_REGISTRY_UNKNOWN"
+  fi
+}
 
+
+# Simple helper to add the appropriate accept and user-agent headers before sending any request
 _wrapper::request(){
-  local ar=()
+  local ar=("User-Agent: $REGANDER_UA")
+  local i
   for i in "${REGANDER_ACCEPT[@]}"; do
     ar+=("Accept: $i")
   done
 
-  dc::http::request "$@" "${ar[@]}" "User-Agent: $REGANDER_UA"
+  dc::http::request "$@" "${ar[@]}"
 }
 
+# Post-processor to apply after any response to catch errors
 _wrapper::request::postprocess(){
   # Acceptable status code exit now
   if [ "${DC_HTTP_STATUS:0:1}" == "2" ] || [ "${DC_HTTP_STATUS:0:1}" == "3" ]; then
     return
   fi
 
-  # 400 errors should sport a readable error body
+  # At the very least, 400 errors should sport a readable error body that we should should interpret
+  # For now, we just pass it down and let the consumer decide...
   #{
   #  "errors:" [{
   #          "code": <error identifier>,
@@ -241,19 +265,18 @@ _wrapper::request::postprocess(){
     dc::logger::error "WOOOO! Slow down tiger! Registry says you are doing too many requests."
     exit "$ERROR_REGISTRY_SLOW_DOWN_TIGER"
     ;;
+  "5"*)
+    dc::logger::error "BONKERS! A 5xx response code. You broke that poor lil' registry, you meany!"
+    exit "$ERROR_REGISTRY_TITS_UP"
+    ;;
   "")
     dc::logger::error "Network issue... Recommended: check your pooch whereabouts. Now, check these chewed-up network cables."
     exit "$ERROR_NETWORK"
     ;;
+  *)
+    # Otherwise...
+    dc::logger::error "Mayday! Mayday!"
+    exit "$ERROR_REGISTRY_UNKNOWN"
+    ;;
   esac
-
-  # Maybe a 5xx, then exit
-  if [ "${DC_HTTP_STATUS:0:1}" == "5" ]; then
-    dc::logger::error "BONKERS! A 5xx response code. You broke that poor lil' registry, you meany!"
-    exit "$ERROR_REGISTRY_TITS_UP"
-  fi
-
-  # Otherwise...
-  dc::logger::error "Mayday! Mayday!"
-  exit "$ERROR_REGISTRY_UNKNOWN"
 }
