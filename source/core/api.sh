@@ -64,7 +64,7 @@ regander::manifest::HEAD() {
   dc::logger::debug " * Has digest: $DC_HTTP_HEADER_DOCKER_CONTENT_DIGEST"
 
   # Output key response headers
-  dc::output::json "{\"type\": \"$DC_HTTP_HEADER_CONTENT_TYPE\", \"length\": \"$DC_HTTP_HEADER_CONTENT_LENGTH\", \"digest\": \"$DC_HTTP_HEADER_DOCKER_CONTENT_DIGEST\"}"
+  dc::output::json "{\"type\": \"$DC_HTTP_HEADER_CONTENT_TYPE\", \"size\": \"$DC_HTTP_HEADER_CONTENT_LENGTH\", \"digest\": \"$DC_HTTP_HEADER_DOCKER_CONTENT_DIGEST\"}"
 }
 
 regander::manifest::GET() {
@@ -146,7 +146,8 @@ regander::manifest::DELETE() {
 
 regander::blob::HEAD() {
   # Restrict to digest
-  dc::commander::declare::arg 4 "$GRAMMAR_DIGEST_SHA256"
+  # XXX unfortunately, this breaks when the cli is different than regander
+  # dc::commander::declare::arg 4 "$GRAMMAR_DIGEST_SHA256"
 
   local name="$1"
   local ref="$2" # digest
@@ -167,12 +168,13 @@ regander::blob::HEAD() {
     # Careful, this is possibly leaking a valid signed token to access private content
     dc::logger::debug " * Final location: $finally"
   fi
-  dc::output::json "{\"type\": \"$DC_HTTP_HEADER_CONTENT_TYPE\", \"length\": \"$DC_HTTP_HEADER_CONTENT_LENGTH\", \"location\": \"$finally\"}"
+  dc::output::json "{\"type\": \"$DC_HTTP_HEADER_CONTENT_TYPE\", \"size\": \"$DC_HTTP_HEADER_CONTENT_LENGTH\", \"location\": \"$finally\"}"
 }
 
 regander::blob::GET() {
   # Restrict to digest
-  dc::commander::declare::arg 4 "$GRAMMAR_DIGEST_SHA256"
+  # XXX unfortunately, this breaks when the cli is different than regander
+  # dc::commander::declare::arg 4 "$GRAMMAR_DIGEST_SHA256"
 
   local name="$1"
   local ref="$2" # digest
@@ -206,7 +208,8 @@ regander::blob::GET() {
 
 regander::blob::MOUNT() {
   # Restrict to digest
-  dc::commander::declare::arg 4 "$GRAMMAR_DIGEST_SHA256"
+  # XXX unfortunately, this breaks when the cli is different than regander
+  # dc::commander::declare::arg 4 "$GRAMMAR_DIGEST_SHA256"
 
   local name="$1"
   local ref="$2"
@@ -220,12 +223,13 @@ regander::blob::MOUNT() {
   dc::logger::debug " * Location: $DC_HTTP_HEADER_LOCATION"
   dc::logger::debug " * Digest: $DC_HTTP_HEADER_DOCKER_CONTENT_DIGEST"
   dc::logger::debug " * Length: $DC_HTTP_HEADER_CONTENT_LENGTH"
-  dc::output::json "{\"location\": \"$DC_HTTP_HEADER_LOCATION\", \"length\": \"$DC_HTTP_HEADER_CONTENT_LENGTH\", \"digest\": \"$DC_HTTP_HEADER_DOCKER_CONTENT_DIGEST\"}"
+  dc::output::json "{\"location\": \"$DC_HTTP_HEADER_LOCATION\", \"size\": \"$DC_HTTP_HEADER_CONTENT_LENGTH\", \"digest\": \"$DC_HTTP_HEADER_DOCKER_CONTENT_DIGEST\"}"
 }
 
 regander::blob::DELETE() {
   # Restrict to digest
-  dc::commander::declare::arg 4 "$GRAMMAR_DIGEST_SHA256"
+  # XXX unfortunately, this breaks when the cli is different than regander
+  # dc::commander::declare::arg 4 "$GRAMMAR_DIGEST_SHA256"
 
   local name="$1"
   local ref="$2" # digest DELETE /v2/<name>/blobs/<digest>
@@ -237,15 +241,11 @@ regander::blob::DELETE() {
 
 regander::blob::PUT() {
   # Restrict to media-type, optional
-  dc::commander::declare::arg 4 "$GRAMMAR_LAYER_TYPE" "media-type" "media-type of the blob" optional
+  # XXX unfortunately, this breaks when the cli is different than regander
+  # dc::commander::declare::arg 4 "$GRAMMAR_LAYER_TYPE" "media-type" "media-type of the blob" optional
 
-  local name=$1
-  local type=$2
-
-  # Get an upload id
-  _regander::client "$name/blobs/uploads/" POST ""
-
-  _regander::expect 202
+  local name="$1"
+  local type="${2:-$MIME_OCI_GZLAYER}"
 
   # XXX sucks - need to clean-up things also wrt curl instead of flipping files all over the place
   tmpfile=$(mktemp -t regander::blob::PUT)
@@ -257,11 +257,20 @@ regander::blob::PUT() {
   digest="$(regander::shasum::compute "$tmpfile")"
   length=$(wc -c "$tmpfile" | awk '{print $1}')
 
-  # XXX revert to application/octet-stream if this breaks
-  _regander::straightwithauth "$DC_HTTP_HEADER_LOCATION&digest=$digest" PUT "$tmpfile" \
-    "Content-Type: ${type:-application/octet-stream}" \
-    "Content-Length: $length"
+  # Only upload if the blob is not there
+  if ! _=$(regander::blob::HEAD "$name" "$digest" 2>/dev/null); then
+    dc::logger::info "Layer is not up-there. Uploading."
+    # Get an upload id
+    _regander::client "$name/blobs/uploads/" POST ""
+    _regander::expect 202
 
-  _regander::expect 201
-  dc::output::json "{\"digest\": \"$DC_HTTP_HEADER_DOCKER_CONTENT_DIGEST\", \"size\": $length, \"mediaType\": \"$type\"}"
+    _regander::straightwithauth "$DC_HTTP_HEADER_LOCATION&digest=$digest" PUT "$tmpfile" \
+      "Content-Type: $type" \
+      "Content-Length: $length"
+    _regander::expect 201
+  else
+    dc::logger::info "Layer $name $digest is already there and mounted. No need to do anything."
+  fi
+
+  dc::output::json "{\"digest\": \"$digest\", \"size\": $length, \"mediaType\": \"$type\"}"
 }
