@@ -5,7 +5,7 @@ readonly CLI_LICENSE="MIT License"
 CLI_DESC="docker registry API shell script client"
 
 # Init
-dc::commander::initialize
+dc::commander::initialize ""
 
 # Flag valid for all operations
 dc::commander::declare::flag registry "^http(s)?://.+$" "url of the registry to communicate with" optional
@@ -117,9 +117,6 @@ There is no parameters or arguments to this method, which only supports GET.
 Note that many (most?) registries do not implement this endpoint."
 
     dc::commander::declare::arg 1 "^catalog$" "\"catalog\"" "the catalog endpoint"
-    if [ ! "${DC_PARGV_2+x}" ]; then
-      readonly DC_PARGV_2=GET
-    fi
     ;;
 
   ###################### VERSION
@@ -137,9 +134,6 @@ Get the protocol version from registry-1.docker.io using anonymous and pipe it t
 "
 
     dc::commander::declare::arg 1 "^version$" "\"version\"" "the version endpoint"
-    if [ ! "${DC_PARGV_2+x}" ]; then
-      readonly DC_PARGV_2=GET
-    fi
     ;;
 
   ###################### DEFAULT
@@ -206,11 +200,15 @@ fi
 # Map credentials to the internal variable
 export REGANDER_USERNAME="$REGISTRY_USERNAME"
 export REGANDER_PASSWORD="$REGISTRY_PASSWORD"
-export REGANDER_ACCEPT
-export REGANDER_NO_VERIFY=${DC_ARGE_DISABLE_VERIFICATION}
+
+# Seal it
+readonly REGANDER_ACCEPT
+readonly REGANDER_NO_VERIFY=${DC_ARGE_DISABLE_VERIFICATION}
+readonly CLI_EXAMPLES
+readonly CLI_DESC
 
 # Call the corresponding method
-if ! regander::"$(echo "$DC_PARGV_1" | tr '[:upper:]' '[:lower:]')"::"$(echo "$DC_PARGV_2" | tr '[:lower:]' '[:upper:]')" "$DC_PARGV_3" "$DC_PARGV_4" "$DC_ARGV_FROM"; then
-  dc::logger::error "The requested endpoint ($DC_PARGV_1) and method ($DC_PARGV_2) doesn't exist in the registry specification or is not supported by regander."
+if ! regander::"$(echo "$DC_PARGV_1" | tr '[:upper:]' '[:lower:]')"::"$(echo "${DC_PARGV_2:-GET}" | tr '[:lower:]' '[:upper:]')" "$DC_PARGV_3" "$DC_PARGV_4" "$DC_ARGV_FROM"; then
+  dc::logger::error "The requested endpoint ($DC_PARGV_1) and method (${DC_PARGV_2:-GET}) doesn't exist in the registry specification or is not supported by regander."
   exit "$ERROR_ARGUMENT_INVALID"
 fi
