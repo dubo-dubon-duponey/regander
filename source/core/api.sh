@@ -4,38 +4,35 @@
 # High-level registry API
 #####################################
 
-_expect(){
-  local expect="$1"
-  if [ "$DC_HTTP_STATUS" != "$expect" ]; then
-    dc::logger::error "Was expecting status code $expect, received $DC_HTTP_STATUS"
-    dc::http::dump::headers
-    dc::http::dump::body
-    exit "$ERROR_REGISTRY_UNKNOWN"
-  fi
-}
-
 regander::version::GET(){
   # XXX technically, the version is present even when authentication fails
   # This method will still make authentication mandatory
   _regander::client "" GET ""
 
+  # If the header does not match expectation, bail out
   if [ "$DC_HTTP_HEADER_DOCKER_DISTRIBUTION_API_VERSION" != "registry/2.0" ]; then
-    dc::logger::error "This server doesn't support the Registry API (returned version header was: \"$DC_HTTP_HEADER_DOCKER_DISTRIBUTION_API_VERSION)\""
+    dc::logger::error "This server doesn't support the Registry API v2.0" "Returned version header was: \"$DC_HTTP_HEADER_DOCKER_DISTRIBUTION_API_VERSION\""
     exit "$ERROR_SERVER_NOT_WHAT_YOU_THINK"
   fi
 
+  # Log op name and key result
   dc::logger::info "GET version successful: \"$DC_HTTP_HEADER_DOCKER_DISTRIBUTION_API_VERSION\""
+  # Debug log response body
   dc::logger::debug "$(jq '.' "$DC_HTTP_BODY" 2>/dev/null || cat "$DC_HTTP_BODY")"
 
+  # Output the response
   dc::output::json "\"$DC_HTTP_HEADER_DOCKER_DISTRIBUTION_API_VERSION\""
 }
 
 regander::catalog::GET() {
   _regander::client "_catalog" GET ""
 
+  # Log op name and key result
   dc::logger::info "GET catalog successful"
+  # Debug log response body
   dc::logger::debug "$(jq '.' "$DC_HTTP_BODY" 2>/dev/null || cat "$DC_HTTP_BODY")"
 
+  # Output the response body
   jq '.' "$DC_HTTP_BODY"
 }
 
@@ -44,9 +41,12 @@ regander::tags::GET() {
 
   _regander::client "$name/tags/list" GET ""
 
-  dc::logger::info "GET tagslist successful"
+  # Log op name and key result
+  dc::logger::info "GET tagslist successful for image $name"
+  # Debug log response body
   dc::logger::debug "$(jq '.' "$DC_HTTP_BODY" 2>/dev/null || cat "$DC_HTTP_BODY")"
 
+  # Output the response body
   jq '.' "$DC_HTTP_BODY"
 }
 
@@ -56,11 +56,14 @@ regander::manifest::HEAD() {
 
   _regander::client "$name/manifests/$ref" HEAD ""
 
-  dc::logger::info "HEAD manifest successful"
+  # Log op name and key result
+  dc::logger::info "HEAD manifest successful for image $name:$ref"
+  # Debug log key headers
   dc::logger::debug " * Has a length of: $DC_HTTP_HEADER_CONTENT_LENGTH bytes"
   dc::logger::debug " * Is of content-type: $DC_HTTP_HEADER_CONTENT_TYPE"
   dc::logger::debug " * Has digest: $DC_HTTP_HEADER_DOCKER_CONTENT_DIGEST"
 
+  # Output key response headers
   dc::output::json "{\"type\": \"$DC_HTTP_HEADER_CONTENT_TYPE\", \"length\": \"$DC_HTTP_HEADER_CONTENT_LENGTH\", \"digest\": \"$DC_HTTP_HEADER_DOCKER_CONTENT_DIGEST\"}"
 }
 
@@ -70,17 +73,20 @@ regander::manifest::GET() {
 
   _regander::client "$name/manifests/$ref" GET ""
 
-  dc::logger::info "GET manifest successful"
+  # Log op name and key result
+  dc::logger::info "GET manifest successful for image $name:$ref"
+  # Debug log key headers
   dc::logger::debug " * Has a length of: $DC_HTTP_HEADER_CONTENT_LENGTH bytes"
   dc::logger::debug " * Is of content-type: $DC_HTTP_HEADER_CONTENT_TYPE"
   dc::logger::debug " * Has digest: $DC_HTTP_HEADER_DOCKER_CONTENT_DIGEST"
 
+  # Debug log body
   dc::logger::debug "$(jq '.' "$DC_HTTP_BODY" 2>/dev/null || cat "$DC_HTTP_BODY")"
 
-  # Digest verification
+  # Verify content matches digest
   [ "$REGANDER_NO_VERIFY" ] || regander::shasum::verify "$DC_HTTP_BODY" "$DC_HTTP_HEADER_DOCKER_CONTENT_DIGEST"
 
-  # Return the body EXACTLY as-is
+  # Output the body EXACTLY as-is
   cat "$DC_HTTP_BODY"
 }
 
@@ -104,12 +110,11 @@ regander::manifest::PUT() {
 
   local mime
   mime="$(printf "%s" "$payload" | jq -rc .mediaType 2>/dev/null)"
-  # No embedded mime-type means that may be a v1 thingie
+  # No embedded mime-type means that may be a v1 thingie - urg
   if [ ! "$mime" ]; then
     mime=$MIME_MANIFEST_V1
   fi
-  # XXX shaky - a mime type that would partially match a substring would pass
-  if [[ "${REGANDER_ACCEPT[*]}" != *"$mime"* ]]; then
+  if [[ "${REGANDER_ACCEPT[*]}" != *" $mime "* ]] && [[ "${REGANDER_ACCEPT[*]}" != *" $mime" ]] && [[ "${REGANDER_ACCEPT[*]}" != "$mime "* ]]; then
     dc::logger::error "Mime type $mime is not recognized as a valid type."
     exit "$ERROR_ARGUMENT_INVALID"
   fi
@@ -121,7 +126,7 @@ regander::manifest::PUT() {
 
   _regander::client "$name/manifests/$ref" PUT "$raw" "Content-type: $mime"
 
-  _expect 201
+  _regander::expect 201
 
   dc::logger::info "PUT manifest successful"
   dc::logger::debug " * Location: $DC_HTTP_HEADER_LOCATION"
@@ -136,7 +141,7 @@ regander::manifest::DELETE() {
 
   _regander::client "$name/manifests/$ref" DELETE ""
 
-  _expect 202
+  _regander::expect 202
 }
 
 regander::blob::HEAD() {
@@ -209,7 +214,7 @@ regander::blob::MOUNT() {
 
   _regander::client "$name/blobs/uploads/?mount=$ref&from=$from" POST ""
 
-  _expect 201
+  _regander::expect 201
 
   dc::logger::info "MOUNT blob successful"
   dc::logger::debug " * Location: $DC_HTTP_HEADER_LOCATION"
@@ -227,19 +232,22 @@ regander::blob::DELETE() {
 
   _regander::client "$name/blobs/$ref" DELETE ""
 
-  _expect 202
+  _regander::expect 202
 }
 
 regander::blob::PUT() {
+  # Restrict to media-type, optional
+  dc::commander::declare::arg 4 "$GRAMMAR_LAYER_TYPE" "media-type" "media-type of the blob" optional
+
   local name=$1
   local type=$2
 
   # Get an upload id
   _regander::client "$name/blobs/uploads/" POST ""
 
-  _expect 202
+  _regander::expect 202
 
-  # XXX sucks - need to things clean-up also wrt curl instead of flipping out files all over the place
+  # XXX sucks - need to clean-up things also wrt curl instead of flipping files all over the place
   tmpfile=$(mktemp -t regander::blob::PUT)
   cat /dev/stdin > "$tmpfile"
 
@@ -249,10 +257,11 @@ regander::blob::PUT() {
   digest="$(regander::shasum::compute "$tmpfile")"
   length=$(wc -c "$tmpfile" | awk '{print $1}')
 
+  # XXX revert to application/octet-stream if this breaks
   _regander::straightwithauth "$DC_HTTP_HEADER_LOCATION&digest=$digest" PUT "$tmpfile" \
-    "Content-Type: application/octet-stream" \
+    "Content-Type: ${type:-application/octet-stream}" \
     "Content-Length: $length"
 
-  _expect 201
+  _regander::expect 201
   dc::output::json "{\"digest\": \"$DC_HTTP_HEADER_DOCKER_CONTENT_DIGEST\", \"size\": $length, \"mediaType\": \"$type\"}"
 }
