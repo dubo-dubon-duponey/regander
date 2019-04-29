@@ -3,7 +3,7 @@
 ## Invocation
 
 ```
-[ENV=FOO] regander [flags] endpoint METHOD [object] [reference] [origin-object]
+[ENV=FOO] regander [flags] endpoint METHOD [object] [reference]
 ```
 
 ## Environment variables
@@ -15,7 +15,7 @@ See "logging" for more on controlling output.
 
 ## Flags
 
-The following flags can be used in combination with an actual `regander` method call:
+The following flags can be used with any endpoint:
 
 ```
 -s, --silent
@@ -35,8 +35,15 @@ The following flags can be used in combination with an actual `regander` method 
 --insecure
     Silently ignore TLS errors (see curl --insecure for more)
 
---disable-verification
+--no-shasum
     Do not verify the shasum of the retrieved content (CAREFUL WITH THAT, TIGER)
+```
+
+The following flag must be used for with the blob MOUNT method:
+
+```
+--from=image
+    Image to mount a blob from
 ```
 
 The following flags are standalone commands:
@@ -55,17 +62,17 @@ The following flags are standalone commands:
 The following is currently implemented:
 
 ```
-regander version GET
-regander catalog GET
+regander version
+regander catalog
 regander tags GET image
 regander manifest HEAD image
 regander manifest GET image
-regander manifest PUT image
+regander manifest PUT image < manifest.json
 regander manifest DELETE image
 regander blob HEAD image ref
 regander blob GET image ref
-regander blob MOUNT destination-image object-reference from-source-image
-regander blob PUT image ref
+regander --from=source-image blob MOUNT destination-image object-reference
+regander blob PUT image type < layer.tgz
 regander blob DELETE image ref
 ```
 
@@ -121,7 +128,7 @@ This behavior can be altered in two ways:
 By default, credentials and other authentication tokens are redacted. If you want them to appear in logs
 (for example, in `curl` statements), set `REGANDER_LOG_AUTH=true`.
 
-Finally note that logging in `debug` WILL possibly leak sensitive information regardless.
+Finally note that logging in `debug` WILL leak sensitive information regardless.
 
 ```
 # Log levels

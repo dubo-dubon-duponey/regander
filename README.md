@@ -46,7 +46,7 @@ Now you have `./bin/regander` and `./bin/reghigh`
 ## Usage TL;DR
 
 ```
-[ENV=FOO] regander [flags] endpoint METHOD [object] [reference] [origin-object]
+[ENV=FOO] regander [flags] endpoint METHOD [object] [reference]
 ```
 
 For example:
@@ -64,10 +64,9 @@ regander --help
 The user will be prompted for credentials in interactive mode.
 Otherwise regander will fallback to anonymous queries, or use whatever credentials are provided through the environment.
 
-See the [reference](REFERENCE.md) for extensive usage details.
+You can also check the [reference](REFERENCE.md) for extensive usage details in a single page.
 
 ## Reghigh
-
 
 [TODO]
 

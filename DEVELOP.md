@@ -1,4 +1,4 @@
-  # Hacking regander
+# Hacking regander and reghigh
 
 ## TL;DR
 
@@ -11,11 +11,9 @@ make build
 # Syntax
 make lint
 
-# Unit tests
-make test-unit
+# Tests
+make test
 
-# Integration tests
-make test-integration
 ```
 
 ## Test in containers
@@ -26,7 +24,13 @@ On mac, `brew install dubo-dubon-duponey/brews/dckr`
 
 Then just run any of the make commands with `dckr`.
 
-Specifically: `DOCKERFILE=sh-art/Dockerfile dckr make test-unit`
+Specifically:
+```
+DOCKERFILE=./sh-art/Dockerfile
+for TARGET in ubuntu-lts-current ubuntu-next debian-current debian-next; do
+  dckr make test
+done
+```
 
 ## Spirit
 
@@ -35,4 +39,4 @@ Specifically: `DOCKERFILE=sh-art/Dockerfile dckr make test-unit`
  * standalone script
  * modular, simple to hack-on source code
  * DRY, KISS implementation of the registry REST API
- * additional, more advanced scenarios, should be composed on top of `regander` (see `reghigh`), not added as core features
+ * additional, more advanced scenarios, should be composed on top of `regander` (see `reghigh` as a good example), not added as core features
