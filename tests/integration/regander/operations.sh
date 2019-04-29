@@ -87,7 +87,7 @@ helperBlobHead(){
   result="$(echo "$result" | jq -rcj .)"
 
   type=$(echo "$result" | jq -rcj .type)
-  length=$(echo "$result" | jq -rcj .length)
+  length=$(echo "$result" | jq -rcj .size)
   location=$(echo "$result" | jq -rcj .location)
   dc-tools::assert::equal "blob HEAD" "0" "$exit"
   dc-tools::assert::equal "application/octet-stream" "$type"
@@ -115,7 +115,7 @@ helperBlobMount(){
   result="$(echo "$result" | jq -rcj .)"
 
   digest=$(echo "$result" | jq -rcj .digest)
-  length=$(echo "$result" | jq -rcj .length)
+  length=$(echo "$result" | jq -rcj .size)
   location=$(echo "$result" | jq -rcj .location)
   dc-tools::assert::equal "blob MOUNT" "0" "$exit"
   dc-tools::assert::equal "$digest" "$shasum"
@@ -158,7 +158,7 @@ helperImageHead(){
   result="$(echo "$result" | jq -rcj .)"
 
   type=$(echo "$result" | jq -rcj .type)
-  length=$(echo "$result" | jq -rcj .length)
+  length=$(echo "$result" | jq -rcj .size)
   location=$(echo "$result" | jq -rcj .location)
   dc-tools::assert::equal "image HEAD" "0" "$exit"
   dc-tools::assert::equal "$type" "application/vnd.docker.distribution.manifest.v2+json"
@@ -170,7 +170,7 @@ helperImageHead(){
   result="$(echo "$result" | jq -rcj .)"
 
   type=$(echo "$result" | jq -rcj .type)
-  length=$(echo "$result" | jq -rcj .length)
+  length=$(echo "$result" | jq -rcj .size)
   location=$(echo "$result" | jq -rcj .location)
   dc-tools::assert::equal "image HEAD" "0" "$exit"
   dc-tools::assert::equal "$type" "application/vnd.docker.distribution.manifest.v2+json"
