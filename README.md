@@ -2,6 +2,9 @@
 
 > A piece of shcript to interact with them Dockeristries
 
+[![Build Status](https://travis-ci.org/dubo-dubon-duponey/regander.svg?branch=master)](https://travis-ci.org/dubo-dubon-duponey/regander)
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fdubo-dubon-duponey%2Fregander.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fdubo-dubon-duponey%2Fregander?ref=badge_shield)
+
 `regander` is a full-fledged client for the [Docker Registry API](https://docs.docker.com/registry/spec/api/) aiming at completeness and correctness.
 
 In a shell: it takes care of the dreaded token authentication and all the HTTP monkeying for you, allowing the consumer 
@@ -43,7 +46,7 @@ Now you have `./bin/regander` and `./bin/reghigh`
 ## Usage TL;DR
 
 ```
-[ENV=FOO] regander [flags] endpoint METHOD [object] [reference] [origin-object]
+[ENV=FOO] regander [flags] endpoint METHOD [object] [reference]
 ```
 
 For example:
@@ -61,10 +64,9 @@ regander --help
 The user will be prompted for credentials in interactive mode.
 Otherwise regander will fallback to anonymous queries, or use whatever credentials are provided through the environment.
 
-See the [reference](REFERENCE.md) for extensive usage details.
+You can also check the [reference](REFERENCE.md) for extensive usage details in a single page.
 
 ## Reghigh
-
 
 [TODO]
 
@@ -75,3 +77,7 @@ See the [todo](TODO.md).
 ## Develop
 
 See the [develop](DEVELOP.md) doc.
+
+## License
+
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fdubo-dubon-duponey%2Fregander.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fdubo-dubon-duponey%2Fregander?ref=badge_large)

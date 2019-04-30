@@ -34,3 +34,6 @@ readonly MIME_OCI_LAYER="application/vnd.oci.image.layer.v1.tar"
 readonly MIME_OCI_GZLAYER="application/vnd.oci.image.layer.v1.tar+gzip"
 readonly MIME_OCI_FOREIGN="application/vnd.oci.image.layer.nondistributable.v1.tar"
 readonly MIME_OCI_GZFOREIGN="application/vnd.oci.image.layer.nondistributable.v1.tar+gzip"
+
+# Grammar
+readonly GRAMMAR_LAYER_TYPE="^$MIME_V2_LAYER|$MIME_OCI_LAYER|$MIME_OCI_GZLAYER$"

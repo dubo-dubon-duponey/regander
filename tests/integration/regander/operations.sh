@@ -28,8 +28,8 @@ ishasum="sha256:${ishasum%% *}"
 
 
 helperHUB(){
-  export REGISTRY_USERNAME=dubogus
-  export REGISTRY_PASSWORD=thisisjustatest
+  export REGISTRY_USERNAME=$HUB_TEST_USERNAME
+  export REGISTRY_PASSWORD=$HUB_TEST_PASSWORD
   REGISTRY=https://registry-1.docker.io
   imagename=$REGISTRY_USERNAME/regander-integration-test
   otherimagename=$REGISTRY_USERNAME/regander-also-integration-test
@@ -45,7 +45,6 @@ helperOSS(){
   tagname=that-tag-name
 }
 
-
 helperVersion(){
   # Version
   result=$(regander -s --registry=$REGISTRY version GET)
@@ -58,7 +57,7 @@ helperVersion(){
 
 helperCatalog(){
   # Empty catalog
-  result=$(regander --registry=$REGISTRY catalog GET)
+  result=$(regander -s --registry=$REGISTRY catalog)
   exit=$?
   result="$(echo "$result" | jq -rcj .)"
 
@@ -72,7 +71,7 @@ helperCatalog(){
 }
 
 helperBlobPush(){
-  result=$(regander -s --registry=$REGISTRY blob PUT $imagename < <(printf "%s" "$blob"))
+  result=$(regander -s --registry=$REGISTRY blob PUT $imagename "application/vnd.oci.image.layer.v1.tar+gzip" < <(printf "%s" "$blob"))
   exit=$?
   result="$(echo "$result" | jq -rcj .digest)"
 
@@ -87,7 +86,7 @@ helperBlobHead(){
   result="$(echo "$result" | jq -rcj .)"
 
   type=$(echo "$result" | jq -rcj .type)
-  length=$(echo "$result" | jq -rcj .length)
+  length=$(echo "$result" | jq -rcj .size)
   location=$(echo "$result" | jq -rcj .location)
   dc-tools::assert::equal "blob HEAD" "0" "$exit"
   dc-tools::assert::equal "application/octet-stream" "$type"
@@ -110,12 +109,12 @@ helperBlobGet(){
 
 helperBlobMount(){
   # Mounting a blob
-  result=$(regander -s --registry=$REGISTRY blob MOUNT $otherimagename "$shasum" $imagename)
+  result=$(regander -s --registry=$REGISTRY --from=$imagename blob MOUNT $otherimagename "$shasum")
   exit=$?
   result="$(echo "$result" | jq -rcj .)"
 
   digest=$(echo "$result" | jq -rcj .digest)
-  length=$(echo "$result" | jq -rcj .length)
+  length=$(echo "$result" | jq -rcj .size)
   location=$(echo "$result" | jq -rcj .location)
   dc-tools::assert::equal "blob MOUNT" "0" "$exit"
   dc-tools::assert::equal "$digest" "$shasum"
@@ -158,7 +157,7 @@ helperImageHead(){
   result="$(echo "$result" | jq -rcj .)"
 
   type=$(echo "$result" | jq -rcj .type)
-  length=$(echo "$result" | jq -rcj .length)
+  length=$(echo "$result" | jq -rcj .size)
   location=$(echo "$result" | jq -rcj .location)
   dc-tools::assert::equal "image HEAD" "0" "$exit"
   dc-tools::assert::equal "$type" "application/vnd.docker.distribution.manifest.v2+json"
@@ -170,7 +169,7 @@ helperImageHead(){
   result="$(echo "$result" | jq -rcj .)"
 
   type=$(echo "$result" | jq -rcj .type)
-  length=$(echo "$result" | jq -rcj .length)
+  length=$(echo "$result" | jq -rcj .size)
   location=$(echo "$result" | jq -rcj .location)
   dc-tools::assert::equal "image HEAD" "0" "$exit"
   dc-tools::assert::equal "$type" "application/vnd.docker.distribution.manifest.v2+json"
