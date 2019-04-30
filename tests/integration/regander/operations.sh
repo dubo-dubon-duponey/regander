@@ -28,8 +28,8 @@ ishasum="sha256:${ishasum%% *}"
 
 
 helperHUB(){
-  export REGISTRY_USERNAME=dubogus
-  export REGISTRY_PASSWORD=thisisjustatest
+  export REGISTRY_USERNAME=$HUB_TEST_USERNAME
+  export REGISTRY_PASSWORD=$HUB_TEST_PASSWORD
   REGISTRY=https://registry-1.docker.io
   imagename=$REGISTRY_USERNAME/regander-integration-test
   otherimagename=$REGISTRY_USERNAME/regander-also-integration-test
@@ -44,7 +44,6 @@ helperOSS(){
   otherimagename=dubogus/regander-also-integration-test
   tagname=that-tag-name
 }
-
 
 helperVersion(){
   # Version
