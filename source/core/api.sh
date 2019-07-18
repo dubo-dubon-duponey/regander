@@ -5,9 +5,10 @@
 #####################################
 
 regander::version::GET(){
-  # XXX technically, the version is present even when authentication fails
-  # This method will still make authentication mandatory
-  _regander::client "" GET ""
+  # XXX Technically, the version is present even when authentication fails
+  # We are blatantly cheating here and forcing a non-erroring unauthenticated request to avoid a useless round trip to the auth server
+  #  _regander::client "" GET ""
+  _wrapper::request "$REGANDER_REGISTRY/" "GET" ""
 
   # If the header does not match expectation, bail out
   if [ "$DC_HTTP_HEADER_DOCKER_DISTRIBUTION_API_VERSION" != "registry/2.0" ]; then
@@ -84,7 +85,7 @@ regander::manifest::GET() {
   dc::logger::debug "$(jq '.' "$DC_HTTP_BODY" 2>/dev/null || cat "$DC_HTTP_BODY")"
 
   # Verify content matches digest
-  [ "$REGANDER_NO_VERIFY" ] || regander::shasum::verify "$DC_HTTP_BODY" "$DC_HTTP_HEADER_DOCKER_CONTENT_DIGEST"
+  [ "$REGANDER_NO_VERIFY" ] || dc::crypto::shasum::verify "$DC_HTTP_BODY" "$DC_HTTP_HEADER_DOCKER_CONTENT_DIGEST"
 
   # Output the body EXACTLY as-is
   cat "$DC_HTTP_BODY"
@@ -101,6 +102,7 @@ regander::manifest::PUT() {
   # TODO schema validation?
   local payload
   local raw
+  local size
 
   raw="$(cat /dev/stdin)"
   if ! payload="$(printf "%s" "$raw" | jq -c -j . 2>/dev/null)" || [ ! "$payload" ]; then
@@ -120,7 +122,7 @@ regander::manifest::PUT() {
   fi
 
   local shasum
-  shasum=$(regander::shasum::compute /dev/stdin < <(printf "%s" "$raw"))
+  shasum=$(dc::crypto::shasum::compute /dev/stdin < <(printf "%s" "$raw"))
 
   dc::logger::info "Shasum for content is $shasum. Going to push to $name/manifests/$ref."
 
@@ -132,7 +134,7 @@ regander::manifest::PUT() {
   dc::logger::debug " * Location: $DC_HTTP_HEADER_LOCATION"
   dc::logger::debug " * Digest: $DC_HTTP_HEADER_DOCKER_CONTENT_DIGEST"
 
-  dc::output::json "{\"location\": \"$DC_HTTP_HEADER_LOCATION\", \"digest\": \"$DC_HTTP_HEADER_DOCKER_CONTENT_DIGEST\"}"
+  dc::output::json "{\"location\": \"$DC_HTTP_HEADER_LOCATION\", \"digest\": \"$DC_HTTP_HEADER_DOCKER_CONTENT_DIGEST\", \"size\": \"$(printf "%s" "$raw" | wc -c | awk '{print $1; }')\"}"
 }
 
 regander::manifest::DELETE() {
@@ -198,7 +200,7 @@ regander::blob::GET() {
   fi
 
   dc::logger::debug "About to verify shasum"
-  [ "$REGANDER_NO_VERIFY" ] || regander::shasum::verify "$DC_HTTP_BODY" "$ref"
+  [ "$REGANDER_NO_VERIFY" ] || dc::crypto::shasum::verify "$DC_HTTP_BODY" "$ref"
   dc::logger::debug "Verification done"
   # echo "$DC_HTTP_BODY"
   dc::logger::debug "About to cat $DC_HTTP_BODY"
@@ -254,7 +256,7 @@ regander::blob::PUT() {
   # Now do a monolithic PUT
   local digest
   local length
-  digest="$(regander::shasum::compute "$tmpfile")"
+  digest="$(dc::crypto::shasum::compute "$tmpfile")"
   length=$(wc -c "$tmpfile" | awk '{print $1}')
 
   # Only upload if the blob is not there

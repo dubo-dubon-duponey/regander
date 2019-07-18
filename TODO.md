@@ -8,6 +8,7 @@
  * consume and present error payloads as returned by the registry
  * bash auto-completion
  * notary?
+ * http caching for manifests?
 
 # Everything that is wrong
 

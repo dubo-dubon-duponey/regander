@@ -47,6 +47,7 @@ _regander::client(){
 #####################################
 # Authentication helper
 #####################################
+
 _regander::authenticate() {
   # Query the auth server (1) for the service (2) with scope (3)
   local url="${1}?service=${2}"
@@ -63,12 +64,6 @@ _regander::authenticate() {
   # SO...
   while true; do
     local authHeader=
-    # Fetch credentials, if we don't have some to replay already
-    if [ ! "$REGANDER_USERNAME" ]; then
-      dc::prompt::credentials "Please provide your username (or press enter for anonymous): " REGANDER_USERNAME "password: " REGANDER_PASSWORD
-      export REGANDER_USERNAME
-      export REGANDER_PASSWORD
-    fi
 
     # If we have something, build the basic auth header
     if [ "$REGANDER_USERNAME" ]; then
@@ -79,39 +74,44 @@ _regander::authenticate() {
     # Query the service
     dc::http::request "$url" GET "" "Authorization: $authHeader" "User-Agent: $REGANDER_UA" "$@"
 
-    if [ "$DC_HTTP_STATUS" == "401" ]; then
-      dc::logger::warning "Wrong username or password."
-      # No way to get credentials, we are done here
-      if [ ! -t 1 ] || [ ! -t 0 ]; then
+    case "$DC_HTTP_STATUS" in
+      401)
+        dc::logger::warning "Wrong username or password."
+      ;;
+      200)
+        # A 200 means authentication was successful, let's read the token and understand what just went down
+        dc-ext::jwt::read "$(jq '.token' < "$DC_HTTP_BODY" | xargs echo)"
+
+        # TODO Actually validate the scope in full
+        if [ ! "$scope" ] || [ "$DC_JWT_ACCESS" != "[]" ]; then
+          dc::logger::debug "[regander] JWT scope: $scope"
+          break
+        fi
+
+        # We got kicked on the scope...
+        dc::logger::warning "The user $REGANDER_USERNAME was denied permission for the requested scope. Maybe the target doesn't exist, or you need a different account to access it."
+        # Are we done? Move on.
+        if [ ! -t 1 ] || [ ! -t 0 ]; then
+          break
+        fi
+      ;;
+      *)
+      # Anything but 200 or 401 is abnormal - in that case, break out and let downstream deal with it
         break
-      fi
-      # Reset username, since it's invalid and continue to retry
-      REGANDER_USERNAME=
-      continue
-    fi
+      ;;
+    esac
 
-    # Anything but 200 or 401 is abnormal - in that case, break out and let downstream deal with it
-    if [ "$DC_HTTP_STATUS" != "200" ]; then
-      break
-    fi
-
-    # A 200 means authentication was successful, let's read the token and understand what just went down
-    dc-ext::jwt::read "$(jq '.token' < "$DC_HTTP_BODY" | xargs echo)"
-
-    # TODO Actually validate the scope in full
-    if [ ! "$scope" ] || [ "$DC_JWT_ACCESS" != "[]" ]; then
-      dc::logger::debug "[regander] JWT scope: $scope"
-      break
-    fi
-
-    # We got kicked on the scope...
-    dc::logger::warning "The user $REGANDER_USERNAME was denied permission for the requested scope. Maybe the target doesn't exist, or you need a different account to access it."
-    # Are we done? Move on.
-    if [ ! -t 1 ] || [ ! -t 0 ]; then
-      break
-    fi
-    # Otherwise, we are in for another try
+    # If we did not break, we failed authentication. Reset.
     REGANDER_USERNAME=
+    # No way to get credentials? We are done here
+    if [ ! -t 1 ] || [ ! -t 0 ]; then
+      dc::logger::error "Can't ask for credentials interactively. You need to fix this by providing valid credentials through the environment."
+      break
+    fi
+    # Ask for credentials and try again
+    dc::prompt::credentials "Please provide your username (or press enter for anonymous): " REGANDER_USERNAME "password: " REGANDER_PASSWORD
+    export REGANDER_USERNAME
+    export REGANDER_PASSWORD
   done
 }
 
@@ -205,6 +205,16 @@ _regander::expect(){
 
 
 # Simple helper to add the appropriate accept and user-agent headers before sending any request
+_wrapper::request(){
+  local ar=("User-Agent: $REGANDER_UA")
+  local i
+  for i in "${REGANDER_ACCEPT[@]}"; do
+    ar+=("Accept: $i")
+  done
+
+  dc::http::request "$@" "${ar[@]}"
+}
+
 _wrapper::request(){
   local ar=("User-Agent: $REGANDER_UA")
   local i
