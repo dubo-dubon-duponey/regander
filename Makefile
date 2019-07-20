@@ -33,7 +33,7 @@ all: build lint test
 # Build dc-tooling and library
 bootstrap:
 	$(call title, $@)
-	DC_PREFIX=$(DC_PREFIX)/bin/tooling make -s -f sh-art/Makefile build-tooling build-library
+	DC_PREFIX=$(DC_PREFIX)/bin/tooling make -s -f $(DC_MAKEFILE_DIR)/sh-art/Makefile build-tooling build-library
 
 $(DC_PREFIX)/bin/%: $(DC_PREFIX)/bin/tooling/lib/dc-sh-art $(DC_PREFIX)/bin/tooling/lib/dc-sh-art-extensions $(DC_MAKEFILE_DIR)/source/core/*.sh $(DC_MAKEFILE_DIR)/source/cli/%
 	$(call title, $@)
