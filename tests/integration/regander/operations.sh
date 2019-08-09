@@ -36,6 +36,15 @@ helperHUB(){
   tagname=that-tag-name
 }
 
+helperHUBAnonymous(){
+  export REGISTRY_USERNAME=""
+  export REGISTRY_PASSWORD=""
+  REGISTRY=https://registry-1.docker.io
+  imagename=$HUB_TEST_USERNAME/regander-integration-test
+  otherimagename=$HUB_TEST_USERNAME/regander-also-integration-test
+  tagname=that-tag-name
+}
+
 helperOSS(){
   export REGISTRY_USERNAME=
   export REGISTRY_PASSWORD=
@@ -227,6 +236,9 @@ testVersion(){
   helperVersion
   helperOSS
   helperVersion
+  # Anon
+  helperHUBAnonymous
+  helperVersion
 }
 
 testCatalog(){
@@ -234,6 +246,9 @@ testCatalog(){
   helperCatalog
   helperOSS
   helperCatalog '{"repositories":[]}'
+  # Anon
+  helperHUBAnonymous
+  helperCatalog
 }
 
 testBlobPush(){
@@ -290,12 +305,18 @@ testImageHead(){
   helperImageHead
   helperOSS
   helperImageHead
+  # Anon
+  helperHUBAnonymous
+  helperImageHead
 }
 
 testImageGet(){
   helperHUB
   helperImageGet
   helperOSS
+  helperImageGet
+  # Anon
+  helperHUBAnonymous
   helperImageGet
 }
 
@@ -310,6 +331,9 @@ testTagsGet(){
   helperHUB
   helperTagsGet
   helperOSS
+  helperTagsGet
+  # Anon
+  helperHUBAnonymous
   helperTagsGet
 }
 

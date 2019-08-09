@@ -5,35 +5,52 @@
 # All media types
 ##########################################################################
 
+true
 # v1
+# shellcheck disable=SC2034
 readonly MIME_V1_MANIFEST="application/vnd.docker.distribution.manifest.v1+json"
+# shellcheck disable=SC2034
 readonly MIME_V1_MANIFEST_JSON="application/json"
+# shellcheck disable=SC2034
 readonly MIME_V1_MANIFEST_SIGNED="application/vnd.docker.distribution.manifest.v1+prettyjws"
 
 # v2
+# shellcheck disable=SC2034
 readonly MIME_V2_MANIFEST="application/vnd.docker.distribution.manifest.v2+json"
+# shellcheck disable=SC2034
 readonly MIME_V2_LIST="application/vnd.docker.distribution.manifest.list.v2+json"
 
 # Subtypes
+# shellcheck disable=SC2034
 readonly MIME_V2_CONFIG="application/vnd.docker.container.image.v1+json"
 readonly MIME_V2_LAYER="application/vnd.docker.image.rootfs.diff.tar.gzip"
+# shellcheck disable=SC2034
 readonly MIME_V2_FOREIGN="application/vnd.docker.image.rootfs.foreign.diff.tar.gzip"
 
 # Alternative config objects
+# shellcheck disable=SC2034
 readonly MIME_V2_CONFIG_PLUGIN="application/vnd.docker.plugin.v1+json"
+# shellcheck disable=SC2034
 readonly MIME_V2_CONFIG_X_APP="x-application/vnd.docker.app-definition.v1+json"
+# shellcheck disable=SC2034
 readonly MIME_V2_CONFIG_X_APP_TPL="x-application/vnd.docker.app-template.v1+json"
 
 # OCI
+# shellcheck disable=SC2034
 readonly MIME_OCI_MANIFEST="application/vnd.oci.image.manifest.v1+json"
+# shellcheck disable=SC2034
 readonly MIME_OCI_LIST="application/vnd.oci.image.index.v1+json"
 
 # Subtypes
+# shellcheck disable=SC2034
 readonly MIME_OCI_CONFIG="application/vnd.oci.image.config.v1+json"
 readonly MIME_OCI_LAYER="application/vnd.oci.image.layer.v1.tar"
 readonly MIME_OCI_GZLAYER="application/vnd.oci.image.layer.v1.tar+gzip"
+# shellcheck disable=SC2034
 readonly MIME_OCI_FOREIGN="application/vnd.oci.image.layer.nondistributable.v1.tar"
+# shellcheck disable=SC2034
 readonly MIME_OCI_GZFOREIGN="application/vnd.oci.image.layer.nondistributable.v1.tar+gzip"
 
 # Grammar
+# shellcheck disable=SC2034
 readonly GRAMMAR_LAYER_TYPE="^$MIME_V2_LAYER|$MIME_OCI_LAYER|$MIME_OCI_GZLAYER$"

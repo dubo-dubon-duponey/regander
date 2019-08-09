@@ -102,7 +102,6 @@ regander::manifest::PUT() {
   # TODO schema validation?
   local payload
   local raw
-  local size
 
   raw="$(cat /dev/stdin)"
   if ! payload="$(printf "%s" "$raw" | jq -c -j . 2>/dev/null)" || [ ! "$payload" ]; then

@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
 
+true
+# shellcheck disable=SC2034
 readonly CLI_VERSION="1.0.0"
+# shellcheck disable=SC2034
 readonly CLI_LICENSE="MIT License"
 CLI_DESC="docker registry API shell script client"
 
 # Init
-dc::commander::initialize ""
+dc::commander::initialize
 
 # Flag valid for all operations
 dc::commander::declare::flag registry "^http(s)?://.+$" "url of the registry to communicate with" optional
@@ -175,10 +178,12 @@ fi
 
 
 # Build the registry url, possibly honoring the --registry variable
+# shellcheck disable=SC2034
 readonly REGANDER_REGISTRY="${DC_ARGV_REGISTRY:-${REGANDER_DEFAULT_REGISTRY}}/v2"
 
 # Build the UA string
 # -${DC_BUILD_DATE} <- too much noise
+# shellcheck disable=SC2034
 readonly REGANDER_UA="${DC_CLI_NAME}/${CLI_VERSION} dubocore/${DC_VERSION}-${DC_REVISION} (bash ${DC_DEPENDENCIES_V_BASH}; jq ${DC_DEPENDENCIES_V_JQ}; $(uname -mrs))"
 
 # If --downgrade is passed, change the accept header
@@ -202,9 +207,13 @@ export REGANDER_USERNAME="$REGISTRY_USERNAME"
 export REGANDER_PASSWORD="$REGISTRY_PASSWORD"
 
 # Seal it
+# shellcheck disable=SC2034
 readonly REGANDER_ACCEPT
+# shellcheck disable=SC2034
 readonly REGANDER_NO_VERIFY=${DC_ARGE_DISABLE_VERIFICATION}
+# shellcheck disable=SC2034
 readonly CLI_EXAMPLES
+# shellcheck disable=SC2034
 readonly CLI_DESC
 
 # Call the corresponding method
