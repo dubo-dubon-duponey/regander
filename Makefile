@@ -102,8 +102,8 @@ integration/%: bootstrap $(DC_PREFIX)/bin/%
 	PATH=$(DC_PREFIX)/bin:${PATH} $(DC_PREFIX)/bin/tooling/bin/dc-tooling-test $(DC_MAKEFILE_DIR)/tests/$@/*.sh
 
 test-bed:
-	if [ "$(shell docker ps -aq --filter "name=regander-registry")" ]; then docker rm -f -v regander-registry; fi
-	docker run -d -p 5000:5000 --restart=always --name regander-registry registry:2
+	if command -v docker >/dev/null; then if [ "$(shell docker ps -aq --filter "name=regander-registry")" ]; then docker rm -f -v regander-registry; fi; fi
+	if command -v docker >/dev/null; then docker run -d -p 5000:5000 --restart=always --name regander-registry registry:2; fi
 
 test-integration: test-bed build-binaries $(patsubst $(DC_MAKEFILE_DIR)/source/cli/%/cmd.sh,integration/%,$(wildcard $(DC_MAKEFILE_DIR)/source/cli/*/cmd.sh)) \
 	$(patsubst $(DC_MAKEFILE_DIR)/source/cli-ext/%/cmd.sh,integration/%,$(wildcard $(DC_MAKEFILE_DIR)/source/cli-ext/*/cmd.sh))

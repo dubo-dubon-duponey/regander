@@ -234,77 +234,115 @@ helperTagsGet(){
 testVersion(){
   helperHUB
   helperVersion
-  helperOSS
-  helperVersion
   # Anon
   helperHUBAnonymous
   helperVersion
+}
+
+testVersionOSS(){
+  if command -v docker >/dev/null; then
+    helperOSS
+    helperVersion
+  fi
 }
 
 testCatalog(){
   helperHUB
   helperCatalog
-  helperOSS
-  helperCatalog '{"repositories":[]}'
   # Anon
   helperHUBAnonymous
   helperCatalog
 }
 
+testCatalogOSS(){
+  if command -v docker >/dev/null; then
+    helperOSS
+    helperCatalog '{"repositories":[]}'
+  fi
+}
+
 testBlobPush(){
   helperHUB
   helperBlobPush
-  helperOSS
-  helperBlobPush
+}
+
+testBlobPushOSS(){
+  if command -v docker >/dev/null; then
+    helperOSS
+    helperBlobPush
+  fi
 }
 
 testBlobHead(){
-  helperOSS
-  helperBlobHead testlocation
   helperHUB
   helperBlobHead
+}
+
+testBlobHeadOSS(){
+  if command -v docker >/dev/null; then
+    helperOSS
+    helperBlobHead testlocation
+  fi
 }
 
 testBlobGet(){
   helperHUB
   helperBlobGet
-  helperOSS
-  helperBlobGet
+}
+
+testBlobGetOSS(){
+  if command -v docker >/dev/null; then
+    helperOSS
+    helperBlobGet
+  fi
 }
 
 testBlobMount(){
   helperHUB
   helperBlobMount
-  helperOSS
-  helperBlobMount
+}
+
+testBlobMountOSS(){
+  if command -v docker >/dev/null; then
+    helperOSS
+    helperBlobMount
+  fi
 }
 
 testBlobDelete(){
   helperHUB
   helperBlobDelete
-  helperOSS
-  helperBlobDelete
+  if command -v docker >/dev/null; then
+    helperOSS
+    helperBlobDelete
+  fi
 }
 
 testCatalogAgain(){
   helperHUB
   helperCatalog
-  helperOSS
-  helperCatalog "{\"repositories\":[\"$otherimagename\",\"$imagename\"]}"
+  if command -v docker >/dev/null; then
+    helperOSS
+    helperCatalog "{\"repositories\":[\"$otherimagename\",\"$imagename\"]}"
+  fi
 }
 
 testImagePut(){
   helperHUB
   helperImagePut
-  helperOSS
-  helperImagePut
+  if command -v docker >/dev/null; then
+    helperOSS
+    helperImagePut
+  fi
 }
 
 testImageHead(){
   helperHUB
   helperImageHead
-  helperOSS
-  helperImageHead
+  if command -v docker >/dev/null; then
+    helperOSS
+    helperImageHead
+  fi
   # Anon
   helperHUBAnonymous
   helperImageHead
@@ -313,8 +351,10 @@ testImageHead(){
 testImageGet(){
   helperHUB
   helperImageGet
-  helperOSS
-  helperImageGet
+  if command -v docker >/dev/null; then
+    helperOSS
+    helperImageGet
+  fi
   # Anon
   helperHUBAnonymous
   helperImageGet
@@ -323,15 +363,19 @@ testImageGet(){
 testImageDelete(){
   helperHUB
   helperImageDelete
-  helperOSS
-  helperImageDelete
+  if command -v docker >/dev/null; then
+    helperOSS
+    helperImageDelete
+  fi
 }
 
 testTagsGet(){
   helperHUB
   helperTagsGet
-  helperOSS
-  helperTagsGet
+  if command -v docker >/dev/null; then
+    helperOSS
+    helperTagsGet
+  fi
   # Anon
   helperHUBAnonymous
   helperTagsGet
