@@ -12,6 +12,9 @@ dc::commander::initialize
 
 # Flag valid for all operations
 dc::commander::declare::flag registry "^http(s)?://.+$" "url of the registry to communicate with" optional
+# XXX hook that shit in proper
+dc::commander::declare::flag username "^/dev/fd/[0-9]+$" "username file descriptor" optional
+dc::commander::declare::flag password "^/dev/fd/[0-9]+$" "password file descriptor" optional
 
 case "$DC_PARGV_1" in
   blob)
@@ -203,8 +206,13 @@ else
 fi
 
 # Map credentials to the internal variable
-export REGANDER_USERNAME="$REGISTRY_USERNAME"
-export REGANDER_PASSWORD="$REGISTRY_PASSWORD"
+# XXX finish hooking that shit up properly
+export REGANDER_USERNAME="${REGISTRY_USERNAME}"
+export REGANDER_PASSWORD="${REGISTRY_PASSWORD}"
+if [ "$DC_ARGV_USERNAME" ]; then
+  REGANDER_USERNAME="$(cat "$DC_ARGV_USERNAME")"
+  REGANDER_PASSWORD="$(cat "$DC_ARGV_PASSWORD")"
+fi
 
 # Seal it
 # shellcheck disable=SC2034
